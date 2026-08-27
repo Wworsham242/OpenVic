@@ -21,6 +21,10 @@ func _ready() -> void:
 		get_tree().quit()
 		return
 
+	if GameLoader.modern_mode:
+		await loading_screen.start_loading_screen(_initialize_modern_mode)
+		return
+
 	await _setup_compatibility_mode_paths()
 	await loading_screen.start_loading_screen(_initialize_game)
 
@@ -96,6 +100,20 @@ func setup_title_theme() -> void:
 
 # REQUIREMENTS
 # * FS-333, FS-334, FS-335, FS-341
+
+
+func _initialize_modern_mode() -> void:
+	var start := Time.get_ticks_usec()
+	loading_screen.try_update_loading_screen(0)
+	GameSingleton.setup_logger()
+
+	loading_screen.try_update_loading_screen(100)
+
+	var end := Time.get_ticks_usec()
+	print(
+		"WARGAME_MODERN_STARTUP_READY mode=modern victoria_paths_skipped=true elapsed_seconds=",
+		float(end - start) / 1_000_000
+	)
 
 
 func _initialize_game() -> void:

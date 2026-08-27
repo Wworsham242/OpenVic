@@ -255,6 +255,12 @@ ArgumentParser::ArgumentParser() {
 
 	options.push_back(ArgumentOption::create("help", Variant::BOOL, "Displays help and quits.", { "h" }));
 
+options.push_back(
+	ArgumentOption::create(
+		"modern", Variant::BOOL, "Start in standalone modern WargameEngine mode."
+	)
+);
+
 	options.push_back(
 		ArgumentOption::create(
 			"game-debug", Variant::BOOL, "Start the game in debug mode.", { "d", "debug", "debug-mode" }, "",
