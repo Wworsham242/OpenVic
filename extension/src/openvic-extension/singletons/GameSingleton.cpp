@@ -81,6 +81,11 @@ void GameSingleton::_bind_methods() {
 	OV_BIND_METHOD(GameSingleton::get_map_aspect_ratio);
 	OV_BIND_METHOD(GameSingleton::get_bookmark_start_position);
 	OV_BIND_METHOD(GameSingleton::get_terrain_texture);
+	OV_BIND_METHOD(GameSingleton::get_modern_stripe_texture);
+	OV_BIND_METHOD(GameSingleton::get_modern_overlay_texture);
+	OV_BIND_METHOD(GameSingleton::get_modern_colormap_land_texture);
+	OV_BIND_METHOD(GameSingleton::get_modern_colormap_water_texture);
+	OV_BIND_METHOD(GameSingleton::get_modern_colormap_overlay_texture);
 	OV_BIND_METHOD(GameSingleton::get_flag_dims);
 	OV_BIND_METHOD(GameSingleton::get_flag_sheet_texture);
 	OV_BIND_METHOD(GameSingleton::get_province_shape_image_subdivisions);
@@ -347,7 +352,31 @@ Vector2 GameSingleton::get_bookmark_start_position() const {
 }
 
 Ref<Texture2DArray> GameSingleton::get_terrain_texture() const {
+	if (modern_map_provider.is_active()) {
+		return modern_map_provider.get_terrain_texture();
+	}
+
 	return terrain_texture;
+}
+
+Ref<ImageTexture> GameSingleton::get_modern_stripe_texture() const {
+	return modern_map_provider.get_stripe_texture();
+}
+
+Ref<ImageTexture> GameSingleton::get_modern_overlay_texture() const {
+	return modern_map_provider.get_overlay_texture();
+}
+
+Ref<ImageTexture> GameSingleton::get_modern_colormap_land_texture() const {
+	return modern_map_provider.get_colormap_land_texture();
+}
+
+Ref<ImageTexture> GameSingleton::get_modern_colormap_water_texture() const {
+	return modern_map_provider.get_colormap_water_texture();
+}
+
+Ref<ImageTexture> GameSingleton::get_modern_colormap_overlay_texture() const {
+	return modern_map_provider.get_colormap_overlay_texture();
 }
 
 Ref<Image> GameSingleton::get_flag_sheet_image() const {

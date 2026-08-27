@@ -11,6 +11,45 @@ namespace OpenVic {
 
 static constexpr int32_t GPU_DIM_LIMIT = 0x3FFF;
 static constexpr int32_t MAX_RENDERABLE_PROVINCE_NUMBER = 0xFFFF;
+static constexpr int32_t MODERN_TERRAIN_LAYER_COUNT = 256;
+
+static Ref<Image> make_rgb8_image(
+uint8_t const red,
+uint8_t const green,
+uint8_t const blue
+) {
+PackedByteArray data;
+
+if (data.resize(3) != OK) {
+return Ref<Image>();
+}
+
+data[0] = red;
+data[1] = green;
+data[2] = blue;
+
+return Image::create_from_data(
+1,
+1,
+false,
+Image::FORMAT_RGB8,
+data
+);
+}
+
+static Ref<ImageTexture> make_rgb8_texture(
+uint8_t const red,
+uint8_t const green,
+uint8_t const blue
+) {
+Ref<Image> const image = make_rgb8_image(red, green, blue);
+
+if (image.is_null()) {
+return Ref<ImageTexture>();
+}
+
+return ImageTexture::create_from_image(image);
+}
 
 Error ModernMapProvider::load(
 Vector2i const& new_dims,
@@ -81,6 +120,12 @@ stable_external_ids = std::move(validated_ids);
 image_subdivisions = {};
 province_shape_texture.unref();
 province_colour_texture.unref();
+terrain_texture.unref();
+stripe_texture.unref();
+overlay_texture.unref();
+colormap_land_texture.unref();
+colormap_water_texture.unref();
+colormap_overlay_texture.unref();
 
 active = true;
 
@@ -230,6 +275,85 @@ if (new_colour_texture.is_null()) {
 return FAILED;
 }
 
+// Standalone modern-mode cosmetic fallbacks.
+//
+// Terrain indices are stored as an unrestricted byte in the map
+// texture, so the fallback array covers the complete 0-255 range.
+// Every layer currently uses the same neutral grey. The land
+// colormap uses the identical value, making the shader's 30%
+// terrain/tint mix stable. Water directly uses its tint value.
+//
+// Stripe blue = 0 selects the base province colour.
+// Overlay ~= 0.5 is neutral for the shader's overlay blend.
+static constexpr uint8_t NEUTRAL_VALUE = 128;
+
+Ref<Image> const neutral_terrain_image = make_rgb8_image(
+NEUTRAL_VALUE,
+NEUTRAL_VALUE,
+NEUTRAL_VALUE
+);
+
+if (neutral_terrain_image.is_null()) {
+return FAILED;
+}
+
+TypedArray<Image> terrain_images;
+
+if (terrain_images.resize(MODERN_TERRAIN_LAYER_COUNT) != OK) {
+return FAILED;
+}
+
+for (int32_t index = 0; index < MODERN_TERRAIN_LAYER_COUNT; ++index) {
+terrain_images[index] = neutral_terrain_image;
+}
+
+Ref<Texture2DArray> new_terrain_texture;
+new_terrain_texture.instantiate();
+
+if (
+new_terrain_texture.is_null() ||
+new_terrain_texture->create_from_images(terrain_images) != OK
+) {
+return FAILED;
+}
+
+Ref<ImageTexture> const new_stripe_texture =
+make_rgb8_texture(0, 0, 0);
+
+Ref<ImageTexture> const new_overlay_texture = make_rgb8_texture(
+NEUTRAL_VALUE,
+NEUTRAL_VALUE,
+NEUTRAL_VALUE
+);
+
+Ref<ImageTexture> const new_colormap_land_texture = make_rgb8_texture(
+NEUTRAL_VALUE,
+NEUTRAL_VALUE,
+NEUTRAL_VALUE
+);
+
+Ref<ImageTexture> const new_colormap_water_texture = make_rgb8_texture(
+NEUTRAL_VALUE,
+NEUTRAL_VALUE,
+NEUTRAL_VALUE
+);
+
+Ref<ImageTexture> const new_colormap_overlay_texture = make_rgb8_texture(
+NEUTRAL_VALUE,
+NEUTRAL_VALUE,
+NEUTRAL_VALUE
+);
+
+if (
+new_stripe_texture.is_null() ||
+new_overlay_texture.is_null() ||
+new_colormap_land_texture.is_null() ||
+new_colormap_water_texture.is_null() ||
+new_colormap_overlay_texture.is_null()
+) {
+return FAILED;
+}
+
 Ref<Texture2DArray> new_shape_texture;
 new_shape_texture.instantiate();
 
@@ -244,6 +368,12 @@ return FAILED;
 image_subdivisions = new_subdivisions;
 province_shape_texture = new_shape_texture;
 province_colour_texture = new_colour_texture;
+terrain_texture = new_terrain_texture;
+stripe_texture = new_stripe_texture;
+overlay_texture = new_overlay_texture;
+colormap_land_texture = new_colormap_land_texture;
+colormap_water_texture = new_colormap_water_texture;
+colormap_overlay_texture = new_colormap_overlay_texture;
 
 return OK;
 }
@@ -333,6 +463,30 @@ return province_shape_texture;
 
 Ref<ImageTexture> ModernMapProvider::get_province_colour_texture() const {
 return province_colour_texture;
+}
+
+Ref<Texture2DArray> ModernMapProvider::get_terrain_texture() const {
+return terrain_texture;
+}
+
+Ref<ImageTexture> ModernMapProvider::get_stripe_texture() const {
+return stripe_texture;
+}
+
+Ref<ImageTexture> ModernMapProvider::get_overlay_texture() const {
+return overlay_texture;
+}
+
+Ref<ImageTexture> ModernMapProvider::get_colormap_land_texture() const {
+return colormap_land_texture;
+}
+
+Ref<ImageTexture> ModernMapProvider::get_colormap_water_texture() const {
+return colormap_water_texture;
+}
+
+Ref<ImageTexture> ModernMapProvider::get_colormap_overlay_texture() const {
+return colormap_overlay_texture;
 }
 
 }

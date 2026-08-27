@@ -104,49 +104,93 @@ func set_up_shader(material: Material, add_cosmetic_textures: bool) -> Error:
 			push_error("Failed to set terrain shader texture array!")
 			ret = FAILED
 
-		# Stripe texture
-		const pixels_per_stripe_tile: float = 8.0
-		if _set_shader_asset_texture(
-			shader_material,
-			param_stripe_tex, &"map/terrain/stripes.dds",
-			param_stripe_tile_factor, pixels_per_stripe_tile
-		) != OK:
-			push_error("Failed to set stripe shader texture!")
-			ret = FAILED
+		if GameSingleton.is_modern_map_active():
+			# Standalone modern-mode cosmetic textures.
+			if _set_shader_texture(
+				shader_material,
+				param_stripe_tex,
+				GameSingleton.get_modern_stripe_texture(),
+				param_stripe_tile_factor,
+				8.0,
+			) != OK:
+				push_error("Failed to set modern stripe shader texture!")
+				ret = FAILED
 
-		# Overlay texture
-		const pixels_per_overlay_tile: float = 512.0
-		if _set_shader_asset_texture(
-			shader_material,
-			param_overlay_tex, &"map/terrain/map_overlay_tile.dds",
-			param_overlay_tile_factor, pixels_per_overlay_tile
-		) != OK:
-			push_error("Failed to set overlay shader texture!")
-			ret = FAILED
+			if _set_shader_texture(
+				shader_material,
+				param_overlay_tex,
+				GameSingleton.get_modern_overlay_texture(),
+				param_overlay_tile_factor,
+				512.0,
+			) != OK:
+				push_error("Failed to set modern overlay shader texture!")
+				ret = FAILED
 
-		# Land colormap
-		if _set_shader_asset_texture(
-			shader_material,
-			param_colormap_land_tex,
-			&"map/terrain/colormap.dds",
-		) != OK:
-			push_error("Failed to set land colormap shader texture!")
-			ret = FAILED
-		# Water colormap
-		if _set_shader_asset_texture(
-			shader_material,
-			param_colormap_water_tex,
-			&"map/terrain/colormap_water.dds",
-		) != OK:
-			push_error("Failed to set water colormap shader texture!")
-			ret = FAILED
-		# Overlay colormap
-		if _set_shader_asset_texture(
-			shader_material,
-			param_colormap_overlay_tex,
-			&"map/terrain/colormap_political.dds",
-		) != OK:
-			push_error("Failed to set overlay colormap shader texture!")
-			ret = FAILED
+			if _set_shader_texture(
+				shader_material,
+				param_colormap_land_tex,
+				GameSingleton.get_modern_colormap_land_texture(),
+			) != OK:
+				push_error("Failed to set modern land colormap shader texture!")
+				ret = FAILED
+
+			if _set_shader_texture(
+				shader_material,
+				param_colormap_water_tex,
+				GameSingleton.get_modern_colormap_water_texture(),
+			) != OK:
+				push_error("Failed to set modern water colormap shader texture!")
+				ret = FAILED
+
+			if _set_shader_texture(
+				shader_material,
+				param_colormap_overlay_tex,
+				GameSingleton.get_modern_colormap_overlay_texture(),
+			) != OK:
+				push_error("Failed to set modern overlay colormap shader texture!")
+				ret = FAILED
+		else:
+			# Victoria II compatibility cosmetic textures.
+			const pixels_per_stripe_tile: float = 8.0
+			if _set_shader_asset_texture(
+				shader_material,
+				param_stripe_tex, &"map/terrain/stripes.dds",
+				param_stripe_tile_factor, pixels_per_stripe_tile
+			) != OK:
+				push_error("Failed to set stripe shader texture!")
+				ret = FAILED
+
+			const pixels_per_overlay_tile: float = 512.0
+			if _set_shader_asset_texture(
+				shader_material,
+				param_overlay_tex, &"map/terrain/map_overlay_tile.dds",
+				param_overlay_tile_factor, pixels_per_overlay_tile
+			) != OK:
+				push_error("Failed to set overlay shader texture!")
+				ret = FAILED
+
+			if _set_shader_asset_texture(
+				shader_material,
+				param_colormap_land_tex,
+				&"map/terrain/colormap.dds",
+			) != OK:
+				push_error("Failed to set land colormap shader texture!")
+				ret = FAILED
+
+			if _set_shader_asset_texture(
+				shader_material,
+				param_colormap_water_tex,
+				&"map/terrain/colormap_water.dds",
+			) != OK:
+				push_error("Failed to set water colormap shader texture!")
+				ret = FAILED
+
+			if _set_shader_asset_texture(
+				shader_material,
+				param_colormap_overlay_tex,
+				&"map/terrain/colormap_political.dds",
+			) != OK:
+				push_error("Failed to set overlay colormap shader texture!")
+				ret = FAILED
 
 	return ret

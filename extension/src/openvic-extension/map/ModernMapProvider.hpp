@@ -27,6 +27,13 @@ godot::Vector2i image_subdivisions;
 godot::Ref<godot::Texture2DArray> province_shape_texture;
 godot::Ref<godot::ImageTexture> province_colour_texture;
 
+godot::Ref<godot::Texture2DArray> terrain_texture;
+godot::Ref<godot::ImageTexture> stripe_texture;
+godot::Ref<godot::ImageTexture> overlay_texture;
+godot::Ref<godot::ImageTexture> colormap_land_texture;
+godot::Ref<godot::ImageTexture> colormap_water_texture;
+godot::Ref<godot::ImageTexture> colormap_overlay_texture;
+
 bool active = false;
 
 public:
@@ -52,6 +59,13 @@ godot::TypedArray<godot::Dictionary> get_province_names() const;
 godot::Vector2i get_province_shape_image_subdivisions() const;
 godot::Ref<godot::Texture2DArray> get_province_shape_texture() const;
 godot::Ref<godot::ImageTexture> get_province_colour_texture() const;
+
+godot::Ref<godot::Texture2DArray> get_terrain_texture() const;
+godot::Ref<godot::ImageTexture> get_stripe_texture() const;
+godot::Ref<godot::ImageTexture> get_overlay_texture() const;
+godot::Ref<godot::ImageTexture> get_colormap_land_texture() const;
+godot::Ref<godot::ImageTexture> get_colormap_water_texture() const;
+godot::Ref<godot::ImageTexture> get_colormap_overlay_texture() const;
 };
 
 }

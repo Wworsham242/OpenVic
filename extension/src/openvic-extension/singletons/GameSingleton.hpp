@@ -116,6 +116,12 @@ namespace OpenVic {
 		/* The cosmetic terrain textures stored in a Texture2DArray. */
 		godot::Ref<godot::Texture2DArray> get_terrain_texture() const;
 
+		godot::Ref<godot::ImageTexture> get_modern_stripe_texture() const;
+		godot::Ref<godot::ImageTexture> get_modern_overlay_texture() const;
+		godot::Ref<godot::ImageTexture> get_modern_colormap_land_texture() const;
+		godot::Ref<godot::ImageTexture> get_modern_colormap_water_texture() const;
+		godot::Ref<godot::ImageTexture> get_modern_colormap_overlay_texture() const;
+
 		godot::Ref<godot::Image> get_flag_sheet_image() const;
 		godot::Ref<godot::ImageTexture> get_flag_sheet_texture() const;
 
