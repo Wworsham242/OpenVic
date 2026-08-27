@@ -8,6 +8,8 @@
 #include <openvic-simulation/dataloader/Dataloader.hpp>
 #include <openvic-simulation/types/TypedIndices.hpp>
 
+#include "openvic-extension/map/ModernMapProvider.hpp"
+
 namespace OpenVic {
 	struct Ideology;
 	struct PartyPolicy;
@@ -22,6 +24,7 @@ namespace OpenVic {
 		static inline GameSingleton* singleton = nullptr;
 
 		GameManager game_manager;
+		ModernMapProvider modern_map_provider;
 
 		godot::Vector2i image_subdivisions;
 		godot::Ref<godot::Texture2DArray> province_shape_texture;
@@ -95,6 +98,9 @@ namespace OpenVic {
 		godot::Error start_game_session();
 		godot::Error end_game_session();
 		bool is_game_session_active() const;
+
+		godot::Error load_modern_map(godot::Vector2i const& dims, godot::PackedInt32Array const& province_number_raster, godot::PackedStringArray const& stable_external_ids);
+		godot::Error load_modern_map_render_data(godot::PackedByteArray const& terrain_raster);
 
 		int32_t get_province_number_from_uv_coords(godot::Vector2 const& coords) const;
 

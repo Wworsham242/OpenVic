@@ -69,6 +69,9 @@ void GameSingleton::_bind_methods() {
 	OV_BIND_METHOD(GameSingleton::end_game_session);
 	OV_BIND_METHOD(GameSingleton::is_game_session_active);
 
+	OV_BIND_METHOD(GameSingleton::load_modern_map, { "dims", "province_number_raster", "stable_external_ids" });
+	OV_BIND_METHOD(GameSingleton::load_modern_map_render_data, { "terrain_raster" });
+
 	OV_BIND_METHOD(GameSingleton::get_province_number_from_uv_coords, { "coords" });
 
 	OV_BIND_METHOD(GameSingleton::get_map_width);
@@ -270,20 +273,47 @@ bool GameSingleton::is_game_session_active() const {
 	return game_manager.is_game_session_active();
 }
 
+Error GameSingleton::load_modern_map(
+	Vector2i const& dims,
+	PackedInt32Array const& province_number_raster,
+	PackedStringArray const& stable_external_ids
+) {
+	return modern_map_provider.load(dims, province_number_raster, stable_external_ids);
+}
+
+Error GameSingleton::load_modern_map_render_data(
+	PackedByteArray const& terrain_raster
+) {
+	return modern_map_provider.load_render_data(terrain_raster);
+}
+
 int32_t GameSingleton::get_province_number_from_uv_coords(Vector2 const& coords) const {
+  if (modern_map_provider.is_active()) {
+    return modern_map_provider.get_province_number_from_uv_coords(coords);
+  }
+
 	const Vector2 pos = coords.posmod(1.0f) * get_map_dims();
 	return get_definition_manager().get_map_definition().get_province_number_at(convert_to<ivec2_t>(pos));
 }
 
 int32_t GameSingleton::get_map_width() const {
+  if (modern_map_provider.is_active()) {
+    return modern_map_provider.get_width();
+  }
 	return get_definition_manager().get_map_definition().get_width();
 }
 
 int32_t GameSingleton::get_map_height() const {
+  if (modern_map_provider.is_active()) {
+    return modern_map_provider.get_height();
+  }
 	return get_definition_manager().get_map_definition().get_height();
 }
 
 Vector2i GameSingleton::get_map_dims() const {
+  if (modern_map_provider.is_active()) {
+    return modern_map_provider.get_dims();
+  }
 	return convert_to<Vector2i>(get_definition_manager().get_map_definition().get_dims());
 }
 
@@ -350,10 +380,18 @@ Rect2i GameSingleton::get_flag_sheet_rect(const country_index_t country_index, S
 }
 
 Vector2i GameSingleton::get_province_shape_image_subdivisions() const {
+	if (modern_map_provider.is_active()) {
+		return modern_map_provider.get_province_shape_image_subdivisions();
+	}
+
 	return image_subdivisions;
 }
 
 Ref<Texture2DArray> GameSingleton::get_province_shape_texture() const {
+	if (modern_map_provider.is_active()) {
+		return modern_map_provider.get_province_shape_texture();
+	}
+
 	return province_shape_texture;
 }
 
@@ -408,6 +446,10 @@ Error GameSingleton::_update_colour_image() {
 }
 
 TypedArray<Dictionary> GameSingleton::get_province_names() const {
+  if (modern_map_provider.is_active()) {
+    return modern_map_provider.get_province_names();
+  }
+
 	static const StringName identifier_key = "identifier";
 	static const StringName position_key = "position";
 	static const StringName rotation_key = "rotation";

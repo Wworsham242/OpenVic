@@ -1,0 +1,12 @@
+[configuration]
+entry_symbol = "gdext_rust_init"
+compatibility_minimum = "4.7"
+reloadable = true
+
+[libraries]
+windows.debug.x86_64 = "res://bin/wargame/wargame_godot_bridge.dll"
+windows.release.x86_64 = "res://bin/wargame/wargame_godot_bridge.dll"
+linux.debug.x86_64 = "res://bin/wargame/libwargame_godot_bridge.so"
+linux.release.x86_64 = "res://bin/wargame/libwargame_godot_bridge.so"
+macos.debug = "res://bin/wargame/libwargame_godot_bridge.dylib"
+macos.release = "res://bin/wargame/libwargame_godot_bridge.dylib"

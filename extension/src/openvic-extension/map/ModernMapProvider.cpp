@@ -1,0 +1,294 @@
+#include "ModernMapProvider.hpp"
+
+#include <limits>
+#include <utility>
+
+#include <godot_cpp/classes/image.hpp>
+
+using namespace godot;
+
+namespace OpenVic {
+
+static constexpr int32_t GPU_DIM_LIMIT = 0x3FFF;
+static constexpr int32_t MAX_RENDERABLE_PROVINCE_NUMBER = 0xFFFF;
+
+Error ModernMapProvider::load(
+Vector2i const& new_dims,
+PackedInt32Array const& new_province_number_raster,
+PackedStringArray const& new_stable_external_ids
+) {
+if (new_dims.x <= 0 || new_dims.y <= 0) {
+return ERR_INVALID_PARAMETER;
+}
+
+int64_t const expected_raster_size =
+static_cast<int64_t>(new_dims.x) * static_cast<int64_t>(new_dims.y);
+
+if (
+expected_raster_size <= 0 ||
+expected_raster_size > static_cast<int64_t>(std::numeric_limits<int32_t>::max()) ||
+new_province_number_raster.size() != expected_raster_size
+) {
+return ERR_INVALID_PARAMETER;
+}
+
+if (
+new_stable_external_ids.is_empty() ||
+new_stable_external_ids.size() > MAX_RENDERABLE_PROVINCE_NUMBER
+) {
+return ERR_INVALID_PARAMETER;
+}
+
+std::vector<String> validated_ids;
+validated_ids.reserve(static_cast<size_t>(new_stable_external_ids.size()));
+
+for (int64_t index = 0; index < new_stable_external_ids.size(); ++index) {
+String const stable_id = new_stable_external_ids[index];
+
+if (stable_id.is_empty()) {
+return ERR_INVALID_PARAMETER;
+}
+
+validated_ids.push_back(stable_id);
+}
+
+std::vector<int32_t> validated_raster;
+validated_raster.reserve(static_cast<size_t>(expected_raster_size));
+
+int64_t const maximum_province_number = new_stable_external_ids.size();
+
+for (int64_t index = 0; index < new_province_number_raster.size(); ++index) {
+int32_t const province_number = new_province_number_raster[index];
+
+// 0 is reserved for no province. Real province numbers are 1..N.
+if (
+province_number < 0 ||
+static_cast<int64_t>(province_number) > maximum_province_number
+) {
+return ERR_INVALID_PARAMETER;
+}
+
+validated_raster.push_back(province_number);
+}
+
+// Activate only after all validation and copying have succeeded.
+dims = new_dims;
+province_number_raster = std::move(validated_raster);
+stable_external_ids = std::move(validated_ids);
+
+// Render data belongs to the loaded map, so a new identity map invalidates
+// any texture generated for the previous map.
+image_subdivisions = {};
+province_shape_texture.unref();
+
+active = true;
+
+return OK;
+}
+
+Error ModernMapProvider::load_render_data(
+PackedByteArray const& terrain_raster
+) {
+if (
+!active ||
+dims.x <= 0 ||
+dims.y <= 0 ||
+province_number_raster.empty() ||
+terrain_raster.size() != static_cast<int64_t>(province_number_raster.size())
+) {
+return ERR_INVALID_PARAMETER;
+}
+
+Vector2i new_subdivisions { 1, 1 };
+
+// Match OpenVic's existing subdivision logic so no texture dimension
+// exceeds the GPU limit and every subdivision has equal dimensions.
+for (int32_t dimension = 0; dimension < 2; ++dimension) {
+while (
+dims[dimension] / new_subdivisions[dimension] > GPU_DIM_LIMIT ||
+dims[dimension] % new_subdivisions[dimension] != 0
+) {
+++new_subdivisions[dimension];
+}
+}
+
+Vector2i const divided_dims = dims / new_subdivisions;
+int64_t const subdivision_width =
+static_cast<int64_t>(divided_dims.x) * 3;
+int64_t const subdivision_size =
+subdivision_width * static_cast<int64_t>(divided_dims.y);
+
+TypedArray<Image> province_shape_images;
+
+if (
+province_shape_images.resize(
+static_cast<int64_t>(new_subdivisions.x) *
+static_cast<int64_t>(new_subdivisions.y)
+) != OK
+) {
+return FAILED;
+}
+
+PackedByteArray index_data_array;
+
+if (index_data_array.resize(subdivision_size) != OK) {
+return FAILED;
+}
+
+for (int32_t v = 0; v < new_subdivisions.y; ++v) {
+for (int32_t u = 0; u < new_subdivisions.x; ++u) {
+for (int32_t y = 0; y < divided_dims.y; ++y) {
+for (int32_t x = 0; x < divided_dims.x; ++x) {
+int32_t const source_x = u * divided_dims.x + x;
+int32_t const source_y = v * divided_dims.y + y;
+
+size_t const source_index =
+static_cast<size_t>(source_x) +
+static_cast<size_t>(source_y) *
+static_cast<size_t>(dims.x);
+
+int32_t const province_number =
+province_number_raster[source_index];
+
+int64_t const destination_index =
+(
+static_cast<int64_t>(x) +
+static_cast<int64_t>(y) *
+static_cast<int64_t>(divided_dims.x)
+) * 3;
+
+// Existing shader contract:
+// R = low province byte
+// G = high province byte
+// B = terrain byte
+index_data_array[destination_index] =
+static_cast<uint8_t>(province_number & 0xFF);
+
+index_data_array[destination_index + 1] =
+static_cast<uint8_t>((province_number >> 8) & 0xFF);
+
+index_data_array[destination_index + 2] =
+terrain_raster[static_cast<int64_t>(source_index)];
+}
+}
+
+Ref<Image> const province_shape_subimage =
+Image::create_from_data(
+divided_dims.x,
+divided_dims.y,
+false,
+Image::FORMAT_RGB8,
+index_data_array
+);
+
+if (province_shape_subimage.is_null()) {
+return FAILED;
+}
+
+province_shape_images[
+u + v * new_subdivisions.x
+] = province_shape_subimage;
+}
+}
+
+Ref<Texture2DArray> new_shape_texture;
+new_shape_texture.instantiate();
+
+if (
+new_shape_texture.is_null() ||
+new_shape_texture->create_from_images(province_shape_images) != OK
+) {
+return FAILED;
+}
+
+// Atomic replacement: only publish after the complete texture exists.
+image_subdivisions = new_subdivisions;
+province_shape_texture = new_shape_texture;
+
+return OK;
+}
+
+bool ModernMapProvider::is_active() const {
+return active;
+}
+
+int32_t ModernMapProvider::get_width() const {
+return dims.x;
+}
+
+int32_t ModernMapProvider::get_height() const {
+return dims.y;
+}
+
+Vector2i ModernMapProvider::get_dims() const {
+return dims;
+}
+
+int32_t ModernMapProvider::get_province_number_from_uv_coords(
+Vector2 const& coords
+) const {
+if (
+!active ||
+dims.x <= 0 ||
+dims.y <= 0 ||
+province_number_raster.empty()
+) {
+return 0;
+}
+
+Vector2 const wrapped = coords.posmod(1.0f);
+int32_t const x =
+static_cast<int32_t>(wrapped.x * static_cast<float>(dims.x));
+int32_t const y =
+static_cast<int32_t>(wrapped.y * static_cast<float>(dims.y));
+
+if (x < 0 || x >= dims.x || y < 0 || y >= dims.y) {
+return 0;
+}
+
+size_t const index =
+static_cast<size_t>(x) +
+static_cast<size_t>(y) * static_cast<size_t>(dims.x);
+
+if (index >= province_number_raster.size()) {
+return 0;
+}
+
+return province_number_raster[index];
+}
+
+TypedArray<Dictionary> ModernMapProvider::get_province_names() const {
+static const StringName identifier_key = "identifier";
+
+TypedArray<Dictionary> result;
+
+if (!active) {
+return result;
+}
+
+if (
+result.resize(
+static_cast<int64_t>(stable_external_ids.size())
+) != OK
+) {
+return {};
+}
+
+for (size_t index = 0; index < stable_external_ids.size(); ++index) {
+Dictionary province;
+province[identifier_key] = stable_external_ids[index];
+result[static_cast<int64_t>(index)] = province;
+}
+
+return result;
+}
+
+Vector2i ModernMapProvider::get_province_shape_image_subdivisions() const {
+return image_subdivisions;
+}
+
+Ref<Texture2DArray> ModernMapProvider::get_province_shape_texture() const {
+return province_shape_texture;
+}
+
+}
