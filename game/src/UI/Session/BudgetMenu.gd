@@ -24,6 +24,9 @@ var _debt_chart: GUIPieChart
 #	slider.set_tooltip_string("%s: §Y%s%%" % [tr(tooltip), GUINode.float_to_string_dp(value, 1)])
 
 
+var _cpp_linked: bool = false
+
+
 func _ready() -> void:
 	GameSingleton.gamestate_updated.connect(_update_info)
 
@@ -31,6 +34,7 @@ func _ready() -> void:
 
 	add_gui_element("country_budget", "country_budget")
 	MenuSingleton.link_budget_menu_to_cpp(self)
+	_cpp_linked = true
 
 	set_click_mask_from_nodepaths([^"./country_budget/main_bg"])
 
@@ -87,7 +91,9 @@ func _notification(what: int) -> void:
 			# gamestate updates, could be called after all the child UI nodes they refer to have
 			# been freed,
 			# meaning the C++ BudgetMenu would be dereferencing invalid pointers.
-			MenuSingleton.unlink_budget_menu_from_cpp()
+			if _cpp_linked:
+				MenuSingleton.unlink_budget_menu_from_cpp()
+				_cpp_linked = false
 
 
 func _on_update_active_nation_management_screen(active_screen: NationManagement.Screen) -> void:

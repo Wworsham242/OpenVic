@@ -69,12 +69,15 @@ var _military_navy_size_label: GUILabel
 var _military_mobilisation_size_label: GUILabel
 var _military_leadership_points_label: GUILabel
 
+var _cpp_linked: bool = false
+
 
 func _ready() -> void:
 	GameSingleton.gamestate_updated.connect(_update_info)
 
 	add_gui_element("topbar", "topbar")
 	MenuSingleton.link_top_bar_to_cpp(self)
+	_cpp_linked = true
 
 	hide_nodes([
 		^"./topbar/topbar_outlinerbutton_bg",
@@ -265,7 +268,9 @@ func _notification(what: int) -> void:
 			# gamestate updates, could be called after all the child UI nodes they refer to have
 			# been freed,
 			# meaning the C++ TopBar would be dereferencing invalid pointers.
-			MenuSingleton.unlink_top_bar_from_cpp()
+			if _cpp_linked:
+				MenuSingleton.unlink_top_bar_from_cpp()
+				_cpp_linked = false
 
 
 func _update_info() -> void:

@@ -76,6 +76,19 @@ var _viewport_dims: Vector2 = Vector2(1, 1)
 @export var validMoveMarkers: ValidMoveMarkers
 @export var selectionMarkers: SelectionMarkers
 
+func _enter_tree() -> void:
+	if not GameLoader.modern_mode:
+		return
+
+	for child_name: StringName in [&"ProjectionManager", &"MapText"]:
+		var child := get_node_or_null(String(child_name))
+		if child != null:
+			remove_child(child)
+			child.queue_free()
+
+	print("WARGAME_MODERN_MAPVIEW_PRUNED victoria_children=true")
+
+
 # ??? Strange Godot/GDExtension Bug ???
 # Upon first opening a clone of this repo with the Godot Editor,
 # if GameSingleton.get_province_number_image is called before MapMesh
@@ -123,7 +136,8 @@ func _ready() -> void:
 		map_mesh_aabb.position.z - map_mesh_aabb.end.z
 	))
 
-	PlayerSingleton.province_selected.connect(_on_province_selected)
+	if not GameLoader.modern_mode:
+		PlayerSingleton.province_selected.connect(_on_province_selected)
 
 	# Start zoomed out with the parchment map active
 	_camera.position.y = _zoom_parchment_threshold * 1.5
@@ -146,7 +160,8 @@ func _ready() -> void:
 	scaled_dims.z *= 2.0
 	(_map_background_instance.mesh as PlaneMesh).set_size(Vector2(scaled_dims.x, scaled_dims.z))
 
-	_map_text.generate_map_names()
+	if not GameLoader.modern_mode:
+		_map_text.generate_map_names()
 
 
 func _notification(what: int) -> void:
@@ -277,6 +292,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			) * _cardinal_move_speed
 
 	elif event.is_action_pressed(_action_select_add):
+		if GameLoader.modern_mode:
+			return
 		if _mouse_over_viewport:
 			if _map_mesh.is_valid_uv_coord(_mouse_pos_map):
 				var province_number: int = GameSingleton.get_province_number_from_uv_coords(_mouse_pos_map)
@@ -301,7 +318,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Check if the mouse is outside of bounds
 			if _map_mesh.is_valid_uv_coord(_mouse_pos_map):
 				province_clicked.emit(GameSingleton.get_province_number_from_uv_coords(_mouse_pos_map))
-				selectionMarkers.clear_selection_markers()
+				if not GameLoader.modern_mode:
+					selectionMarkers.clear_selection_markers()
 			else:
 				print("Clicked outside the map!")
 	elif event.is_action_pressed(_action_right_click):
@@ -309,6 +327,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _map_mesh.is_valid_uv_coord(_mouse_pos_map):
 				var province_number: int = GameSingleton.get_province_number_from_uv_coords(_mouse_pos_map)
 				province_right_clicked.emit(province_number)
+				if GameLoader.modern_mode:
+					return
 				var port_province_number: int = MapItemSingleton.get_clicked_port_province_number(_mouse_pos_map)
 				if port_province_number != 0:
 					var port_pos: Vector2 = MapItemSingleton.get_port_position_by_province_number(port_province_number)

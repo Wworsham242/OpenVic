@@ -2,6 +2,8 @@ extends Control
 
 const LoadingScreen := preload("res://src/Systems/Startup/LoadingScreen.gd")
 const GameMenuScene := preload("res://src/UI/GameMenu/GameMenu/GameMenu.tscn")
+const GameSessionScene := preload("res://src/Systems/Session/GameSession.tscn")
+const ModernMapLoaderScript := preload("res://src/Wargame/ModernMapLoader.gd")
 
 @export_subgroup("Nodes")
 @export var loading_screen: LoadingScreen
@@ -107,6 +109,12 @@ func _initialize_modern_mode() -> void:
 	loading_screen.try_update_loading_screen(0)
 	GameSingleton.setup_logger()
 
+	loading_screen.try_update_loading_screen(25, true)
+
+	if ModernMapLoaderScript.load_default_map() != OK:
+		push_error("Failed to load standalone modern map package.")
+		return
+
 	loading_screen.try_update_loading_screen(100)
 
 	var end := Time.get_ticks_usec()
@@ -114,6 +122,8 @@ func _initialize_modern_mode() -> void:
 		"WARGAME_MODERN_STARTUP_READY mode=modern victoria_paths_skipped=true elapsed_seconds=",
 		float(end - start) / 1_000_000
 	)
+
+	get_tree().change_scene_to_packed.call_deferred(GameSessionScene)
 
 
 func _initialize_game() -> void:
