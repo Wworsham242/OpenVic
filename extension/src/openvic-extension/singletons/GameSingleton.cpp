@@ -71,6 +71,7 @@ void GameSingleton::_bind_methods() {
 
 	OV_BIND_METHOD(GameSingleton::load_modern_map, { "dims", "province_number_raster", "stable_external_ids" });
 	OV_BIND_METHOD(GameSingleton::load_modern_map_render_data, { "terrain_raster" });
+	OV_BIND_METHOD(GameSingleton::is_modern_map_active);
 
 	OV_BIND_METHOD(GameSingleton::get_province_number_from_uv_coords, { "coords" });
 
@@ -287,6 +288,10 @@ Error GameSingleton::load_modern_map_render_data(
 	return modern_map_provider.load_render_data(terrain_raster);
 }
 
+bool GameSingleton::is_modern_map_active() const {
+	return modern_map_provider.is_active();
+}
+
 int32_t GameSingleton::get_province_number_from_uv_coords(Vector2 const& coords) const {
   if (modern_map_provider.is_active()) {
     return modern_map_provider.get_province_number_from_uv_coords(coords);
@@ -396,6 +401,10 @@ Ref<Texture2DArray> GameSingleton::get_province_shape_texture() const {
 }
 
 Ref<ImageTexture> GameSingleton::get_province_colour_texture() const {
+	if (modern_map_provider.is_active()) {
+		return modern_map_provider.get_province_colour_texture();
+	}
+
 	return province_colour_texture;
 }
 

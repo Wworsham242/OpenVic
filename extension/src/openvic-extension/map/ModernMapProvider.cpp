@@ -80,6 +80,7 @@ stable_external_ids = std::move(validated_ids);
 // any texture generated for the previous map.
 image_subdivisions = {};
 province_shape_texture.unref();
+province_colour_texture.unref();
 
 active = true;
 
@@ -191,6 +192,44 @@ u + v * new_subdivisions.x
 }
 }
 
+// Province colours use the existing shader's 16-bit province lookup.
+// X contains base/stripe pairs for the low byte; Y is the high byte.
+static constexpr int32_t COLOUR_TEXTURE_WIDTH = 512;
+static constexpr int32_t COLOUR_TEXTURE_HEIGHT = 256;
+
+PackedByteArray colour_data;
+if (
+colour_data.resize(
+static_cast<int64_t>(COLOUR_TEXTURE_WIDTH) *
+static_cast<int64_t>(COLOUR_TEXTURE_HEIGHT) * 4
+) != OK
+) {
+return FAILED;
+}
+
+// Transparent initially: terrain remains visible until an
+// observer-filtered modern map mode supplies province colours.
+colour_data.fill(0);
+
+Ref<Image> const new_colour_image = Image::create_from_data(
+COLOUR_TEXTURE_WIDTH,
+COLOUR_TEXTURE_HEIGHT,
+false,
+Image::FORMAT_RGBA8,
+colour_data
+);
+
+if (new_colour_image.is_null()) {
+return FAILED;
+}
+
+Ref<ImageTexture> const new_colour_texture =
+ImageTexture::create_from_image(new_colour_image);
+
+if (new_colour_texture.is_null()) {
+return FAILED;
+}
+
 Ref<Texture2DArray> new_shape_texture;
 new_shape_texture.instantiate();
 
@@ -204,6 +243,7 @@ return FAILED;
 // Atomic replacement: only publish after the complete texture exists.
 image_subdivisions = new_subdivisions;
 province_shape_texture = new_shape_texture;
+province_colour_texture = new_colour_texture;
 
 return OK;
 }
@@ -289,6 +329,10 @@ return image_subdivisions;
 
 Ref<Texture2DArray> ModernMapProvider::get_province_shape_texture() const {
 return province_shape_texture;
+}
+
+Ref<ImageTexture> ModernMapProvider::get_province_colour_texture() const {
+return province_colour_texture;
 }
 
 }

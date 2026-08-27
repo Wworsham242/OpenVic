@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <godot_cpp/classes/global_constants.hpp>
+#include <godot_cpp/classes/image_texture.hpp>
 #include <godot_cpp/classes/texture2d_array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
@@ -24,6 +25,7 @@ std::vector<godot::String> stable_external_ids;
 
 godot::Vector2i image_subdivisions;
 godot::Ref<godot::Texture2DArray> province_shape_texture;
+godot::Ref<godot::ImageTexture> province_colour_texture;
 
 bool active = false;
 
@@ -49,6 +51,7 @@ godot::TypedArray<godot::Dictionary> get_province_names() const;
 
 godot::Vector2i get_province_shape_image_subdivisions() const;
 godot::Ref<godot::Texture2DArray> get_province_shape_texture() const;
+godot::Ref<godot::ImageTexture> get_province_colour_texture() const;
 };
 
 }

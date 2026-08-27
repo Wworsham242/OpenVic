@@ -101,6 +101,7 @@ namespace OpenVic {
 
 		godot::Error load_modern_map(godot::Vector2i const& dims, godot::PackedInt32Array const& province_number_raster, godot::PackedStringArray const& stable_external_ids);
 		godot::Error load_modern_map_render_data(godot::PackedByteArray const& terrain_raster);
+		bool is_modern_map_active() const;
 
 		int32_t get_province_number_from_uv_coords(godot::Vector2 const& coords) const;
 
