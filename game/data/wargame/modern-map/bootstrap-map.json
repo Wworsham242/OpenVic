@@ -3,21 +3,20 @@
   "width": 8,
   "height": 4,
   "stable_external_ids": [
-    "modern:alpha",
-    "modern:bravo",
-    "modern:charlie",
-    "modern:delta"
+    "modern:blue_port",
+    "modern:frontier",
+    "modern:crossroads"
   ],
   "province_number_raster": [
     1, 1, 1, 2, 2, 2, 0, 0,
     1, 1, 1, 2, 2, 2, 0, 0,
-    3, 3, 3, 4, 4, 4, 0, 0,
-    3, 3, 3, 4, 4, 4, 0, 0
+    3, 3, 3, 0, 0, 0, 0, 0,
+    3, 3, 3, 0, 0, 0, 0, 0
   ],
   "terrain_raster": [
     1, 1, 1, 1, 1, 1, 0, 0,
     1, 1, 1, 1, 1, 1, 0, 0,
-    1, 1, 1, 1, 1, 1, 0, 0,
-    1, 1, 1, 1, 1, 1, 0, 0
+    1, 1, 1, 0, 0, 0, 0, 0,
+    1, 1, 1, 0, 0, 0, 0, 0
   ]
 }

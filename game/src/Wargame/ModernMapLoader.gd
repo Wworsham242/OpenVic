@@ -81,22 +81,22 @@ static func load_default_map() -> Error:
 		push_error("Modern map provider did not become active.")
 		return FAILED
 
-	var pick_alpha := GameSingleton.get_province_number_from_uv_coords(Vector2(0.125, 0.125))
-	var pick_bravo := GameSingleton.get_province_number_from_uv_coords(Vector2(0.50, 0.125))
-	var pick_charlie := GameSingleton.get_province_number_from_uv_coords(Vector2(0.125, 0.75))
-	var pick_delta := GameSingleton.get_province_number_from_uv_coords(Vector2(0.50, 0.75))
+	var pick_blue_port := GameSingleton.get_province_number_from_uv_coords(Vector2(0.125, 0.125))
+	var pick_frontier := GameSingleton.get_province_number_from_uv_coords(Vector2(0.50, 0.125))
+	var pick_crossroads := GameSingleton.get_province_number_from_uv_coords(Vector2(0.125, 0.75))
+	var pick_empty := GameSingleton.get_province_number_from_uv_coords(Vector2(0.50, 0.75))
 
-	if pick_alpha != 1 or pick_bravo != 2 or pick_charlie != 3 or pick_delta != 4:
+	if pick_blue_port != 1 or pick_frontier != 2 or pick_crossroads != 3 or pick_empty != 0:
 		push_error(
 			"Modern map deterministic pick proof failed: ",
-			pick_alpha, ",", pick_bravo, ",", pick_charlie, ",", pick_delta
+			pick_blue_port, ",", pick_frontier, ",", pick_crossroads, ",", pick_empty
 		)
 		return FAILED
 
 	print(
 		"WARGAME_MODERN_MAP_PACKAGE_LOADED dims=", width, "x", height,
 		" provinces=", stable_ids.size(),
-		" picks=", pick_alpha, ",", pick_bravo, ",", pick_charlie, ",", pick_delta
+		" picks=", pick_blue_port, ",", pick_frontier, ",", pick_crossroads, ",", pick_empty
 	)
 
 	return OK

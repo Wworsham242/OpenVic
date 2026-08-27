@@ -115,6 +115,17 @@ func _initialize_modern_mode() -> void:
 		push_error("Failed to load standalone modern map package.")
 		return
 
+	var repository_root := OS.get_environment("WARGAME_ENGINE_ROOT")
+	if repository_root.is_empty():
+		push_error("WARGAME_ENGINE_ROOT must point to the WargameEngine repository in modern development mode.")
+		return
+
+	if not WargameBridge.initialize(repository_root, "modern:blue", 49374):
+		push_error("Failed to initialize WargameEngine: ", WargameBridge.last_error())
+		return
+
+	print("WARGAME_MODERN_AUTHORITY_READY observer=", WargameBridge.observer())
+
 	loading_screen.try_update_loading_screen(100)
 
 	var end := Time.get_ticks_usec()

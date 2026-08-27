@@ -427,6 +427,22 @@ return 0;
 return province_number_raster[index];
 }
 
+String ModernMapProvider::get_stable_external_id_from_province_number(
+    int32_t const province_number
+) const {
+    if (!active || province_number <= 0) {
+        return {};
+    }
+
+    size_t const index = static_cast<size_t>(province_number - 1);
+
+    if (index >= stable_external_ids.size()) {
+        return {};
+    }
+
+    return stable_external_ids[index];
+}
+
 TypedArray<Dictionary> ModernMapProvider::get_province_names() const {
 static const StringName identifier_key = "identifier";
 

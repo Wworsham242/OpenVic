@@ -20,6 +20,18 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	if GameLoader.modern_mode:
+		var bootstrap_summary := _present_modern_province(1)
+		if bootstrap_summary.is_empty():
+			push_error("Modern semantic bootstrap proof failed.")
+			return
+
+		print(
+			"WARGAME_MODERN_SEMANTIC_PROOF province=1 id=",
+			bootstrap_summary[&"id"],
+			" layer=", bootstrap_summary[&"layer"],
+			" units=", bootstrap_summary[&"presented_unit_count"],
+			" strength=", bootstrap_summary[&"presented_unit_strength"]
+		)
 		print("WARGAME_MODERN_SESSION_READY map_view_only=true")
 		return
 	if GameSingleton.start_game_session() != OK:
@@ -79,9 +91,51 @@ func _on_map_view_province_unhovered() -> void:
 	_map_view.unset_hovered_province()
 
 
+func _present_modern_province(province_number: int) -> Dictionary:
+	if province_number <= 0:
+		return {}
+
+	var stable_id := GameSingleton.get_stable_external_id_from_province_number(province_number)
+	if stable_id.is_empty():
+		push_error("No stable external ID for modern province number: ", province_number)
+		return {}
+
+	var summary: Dictionary = WargameBridge.presented_place_summary(stable_id)
+	if summary.is_empty():
+		push_error(
+			"No observer-filtered WargameEngine presentation for ", stable_id,
+			": ", WargameBridge.last_error()
+		)
+		return {}
+
+	if not summary.get(&"exists", false):
+		push_error("Presented place summary did not exist for ", stable_id)
+		return {}
+
+	if String(summary.get(&"id", "")) != stable_id:
+		push_error(
+			"Presented place identity mismatch: map=", stable_id,
+			" engine=", summary.get(&"id", "")
+		)
+		return {}
+
+	return summary
+
+
 func _on_map_view_province_clicked(province_number: int) -> void:
 	if GameLoader.modern_mode:
-		print("WARGAME_MODERN_PROVINCE_CLICK number=", province_number)
+		var summary := _present_modern_province(province_number)
+		if summary.is_empty():
+			print("WARGAME_MODERN_PROVINCE_CLICK number=", province_number, " presented=false")
+			return
+
+		print(
+			"WARGAME_MODERN_PROVINCE_CLICK number=", province_number,
+			" id=", summary[&"id"],
+			" layer=", summary[&"layer"],
+			" units=", summary[&"presented_unit_count"],
+			" strength=", summary[&"presented_unit_strength"]
+		)
 		return
 
 	PlayerSingleton.set_selected_province_by_number(province_number)
