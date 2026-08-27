@@ -4,6 +4,17 @@ extends Node
 @export var _model_manager: ModelManager
 @export var _game_session_menu: Control
 
+const _MODERN_SPEED_INTERVALS: PackedFloat32Array = [
+	1.0,
+	0.5,
+	0.25,
+	0.125,
+]
+
+var _modern_paused := true
+var _modern_speed_index := 0
+var _modern_time_accumulator := 0.0
+
 
 func _enter_tree() -> void:
 	if not GameLoader.modern_mode:
@@ -33,6 +44,11 @@ func _ready() -> void:
 			" strength=", bootstrap_summary[&"presented_unit_strength"]
 		)
 		print("WARGAME_MODERN_SESSION_READY map_view_only=true")
+		print(
+			"WARGAME_MODERN_TIME_READY paused=true speed=1 ",
+			"hour=", WargameBridge.hour(),
+			" revision=", WargameBridge.presentation_revision()
+		)
 		return
 	if GameSingleton.start_game_session() != OK:
 		push_error("Failed to setup game")
@@ -45,6 +61,39 @@ func _ready() -> void:
 	CursorManager.set_compat_cursor(&"normal", Input.CURSOR_IBEAM)
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not GameLoader.modern_mode:
+		return
+
+	if event.is_action_pressed(&"time_pause"):
+		_modern_paused = not _modern_paused
+		_modern_time_accumulator = 0.0
+		print(
+			"WARGAME_MODERN_TIME_PAUSE paused=", _modern_paused,
+			" hour=", WargameBridge.hour(),
+			" revision=", WargameBridge.presentation_revision()
+		)
+		get_viewport().set_input_as_handled()
+		return
+
+	if event.is_action_pressed(&"time_speed_increase"):
+		_modern_speed_index = mini(
+			_modern_speed_index + 1,
+			_MODERN_SPEED_INTERVALS.size() - 1
+		)
+		_modern_time_accumulator = 0.0
+		print("WARGAME_MODERN_TIME_SPEED speed=", _modern_speed_index + 1)
+		get_viewport().set_input_as_handled()
+		return
+
+	if event.is_action_pressed(&"time_speed_decrease"):
+		_modern_speed_index = maxi(_modern_speed_index - 1, 0)
+		_modern_time_accumulator = 0.0
+		print("WARGAME_MODERN_TIME_SPEED speed=", _modern_speed_index + 1)
+		get_viewport().set_input_as_handled()
+		return
+
+
 func _notification(what: int) -> void:
 	if GameLoader.modern_mode:
 		return
@@ -55,8 +104,54 @@ func _notification(what: int) -> void:
 				push_error("Failed to end game session")
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if GameLoader.modern_mode:
+		if _modern_paused:
+			return
+
+		_modern_time_accumulator += delta
+		var interval := float(_MODERN_SPEED_INTERVALS[_modern_speed_index])
+
+		while _modern_time_accumulator >= interval:
+			_modern_time_accumulator -= interval
+
+			var before_hour := WargameBridge.hour()
+			var before_revision := WargameBridge.presentation_revision()
+
+			if not WargameBridge.advance_hour():
+				push_error(
+					"Modern authoritative advance failed: ",
+					WargameBridge.last_error()
+				)
+				_modern_paused = true
+				return
+
+			var after_hour := WargameBridge.hour()
+			var after_revision := WargameBridge.presentation_revision()
+
+			if after_hour != before_hour + 1:
+				push_error(
+					"Modern authoritative hour transition invalid: ",
+					before_hour, "->", after_hour
+				)
+				_modern_paused = true
+				return
+
+			if after_revision <= before_revision:
+				push_error(
+					"Modern presentation revision did not advance: ",
+					before_revision, "->", after_revision
+				)
+				_modern_paused = true
+				return
+
+			print(
+				"WARGAME_MODERN_TIME_ADVANCE ",
+				"hour=", before_hour, "->", after_hour,
+				" revision=", before_revision, "->", after_revision,
+				" speed=", _modern_speed_index + 1
+			)
+
 		return
 
 	GameSingleton.update_clock()
