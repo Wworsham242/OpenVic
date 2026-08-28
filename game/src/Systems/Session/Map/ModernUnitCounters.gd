@@ -82,6 +82,13 @@ func get_stack_place_id(index: int) -> String:
 
     return _place_ids[index]
 
+
+func get_stack_unit_ids_by_place_id(place_id: String) -> PackedStringArray:
+    var index := _place_ids.find(place_id)
+    if index < 0:
+        return PackedStringArray()
+
+    return _stack_unit_ids[index]
 func _apply_scales() -> void:
     if multimesh == null:
         return

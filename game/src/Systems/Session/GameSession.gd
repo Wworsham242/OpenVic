@@ -19,6 +19,8 @@ var _modern_place_positions: Dictionary = {}
 var _modern_visual_place_ids := PackedStringArray()
 var _modern_map_mode_revision := -1
 var _modern_unit_counter_revision := -1
+var _modern_selected_place_id := ""
+var _modern_selected_unit_ids := PackedStringArray()
 
 
 func _enter_tree() -> void:
@@ -445,6 +447,7 @@ func _refresh_modern_unit_counters(force: bool) -> bool:
 
 	_map_view.modern_unit_counters.visible = counter_place_ids.size() > 0
 	_modern_unit_counter_revision = revision
+	_reconcile_modern_unit_selection()
 
 	print(
 		"WARGAME_MODERN_UNIT_COUNTER_REFRESH ",
@@ -487,19 +490,72 @@ func _present_modern_province(province_number: int) -> Dictionary:
 	return summary
 
 
+func _clear_modern_unit_selection() -> void:
+	_modern_selected_place_id = ""
+	_modern_selected_unit_ids = PackedStringArray()
+
+
+func _reconcile_modern_unit_selection() -> void:
+	if _modern_selected_place_id.is_empty():
+		_modern_selected_unit_ids = PackedStringArray()
+		return
+
+	if _map_view.modern_unit_counters == null:
+		_clear_modern_unit_selection()
+		return
+
+	var current_ids: PackedStringArray = _map_view.modern_unit_counters.get_stack_unit_ids_by_place_id(
+		_modern_selected_place_id
+	)
+	if current_ids.is_empty():
+		print(
+			"WARGAME_MODERN_UNIT_SELECTION_CLEAR reason=revision place=",
+			_modern_selected_place_id
+		)
+		_clear_modern_unit_selection()
+		return
+
+	_modern_selected_unit_ids = current_ids
+
+
+func _select_modern_units_at_place(place_id: String) -> void:
+	if _map_view.modern_unit_counters == null:
+		_clear_modern_unit_selection()
+		return
+
+	var unit_ids: PackedStringArray = _map_view.modern_unit_counters.get_stack_unit_ids_by_place_id(place_id)
+	if unit_ids.is_empty():
+		_clear_modern_unit_selection()
+		print("WARGAME_MODERN_UNIT_SELECTION place=", place_id, " formations=0")
+		return
+
+	_modern_selected_place_id = place_id
+	_modern_selected_unit_ids = unit_ids
+	print(
+		"WARGAME_MODERN_UNIT_SELECTION place=", place_id,
+		" formations=", unit_ids.size(),
+		" ids=", unit_ids
+	)
+
+
 func _on_map_view_province_clicked(province_number: int) -> void:
 	if GameLoader.modern_mode:
 		var summary := _present_modern_province(province_number)
 		if summary.is_empty():
+			_clear_modern_unit_selection()
 			print("WARGAME_MODERN_PROVINCE_CLICK number=", province_number, " presented=false")
 			return
 
+		var stable_id := String(summary[&"id"])
+		_select_modern_units_at_place(stable_id)
+
 		print(
 			"WARGAME_MODERN_PROVINCE_CLICK number=", province_number,
-			" id=", summary[&"id"],
+			" id=", stable_id,
 			" layer=", summary[&"layer"],
 			" units=", summary[&"presented_unit_count"],
-			" strength=", summary[&"presented_unit_strength"]
+			" strength=", summary[&"presented_unit_strength"],
+			" selected_formations=", _modern_selected_unit_ids.size()
 		)
 		return
 
