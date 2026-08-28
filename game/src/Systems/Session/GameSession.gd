@@ -15,6 +15,10 @@ var _modern_paused := true
 var _modern_speed_index := 0
 var _modern_time_accumulator := 0.0
 
+var _modern_place_positions: Dictionary = {}
+var _modern_visual_place_ids := PackedStringArray()
+var _modern_map_mode_revision := -1
+
 
 func _enter_tree() -> void:
 	if not GameLoader.modern_mode:
@@ -49,6 +53,15 @@ func _ready() -> void:
 			"hour=", WargameBridge.hour(),
 			" revision=", WargameBridge.presentation_revision()
 		)
+
+		if not _initialize_modern_map_mode():
+			push_error("Modern map-mode initialization failed.")
+			return
+
+		if not _refresh_modern_map_mode(true):
+			push_error("Modern map-mode initial refresh failed.")
+			return
+
 		return
 	if GameSingleton.start_game_session() != OK:
 		push_error("Failed to setup game")
@@ -152,6 +165,11 @@ func _process(delta: float) -> void:
 				" speed=", _modern_speed_index + 1
 			)
 
+			if not _refresh_modern_map_mode(false):
+				push_error("Modern map-mode refresh failed after authoritative advance.")
+				_modern_paused = true
+				return
+
 		return
 
 	GameSingleton.update_clock()
@@ -184,6 +202,122 @@ func _on_map_view_province_hovered(province_number: int) -> void:
 
 func _on_map_view_province_unhovered() -> void:
 	_map_view.unset_hovered_province()
+
+
+func _initialize_modern_map_mode() -> bool:
+	var index: Dictionary = WargameBridge.presented_place_index()
+	if index.is_empty():
+		push_error("Modern map-mode presentation index unavailable: ", WargameBridge.last_error())
+		return false
+
+	var presentation_ids: PackedStringArray = index.get(&"ids", PackedStringArray())
+	if presentation_ids.is_empty():
+		push_error("Modern map-mode presentation index contains no place IDs.")
+		return false
+
+	_modern_place_positions.clear()
+	for position in range(presentation_ids.size()):
+		_modern_place_positions[presentation_ids[position]] = position
+
+	_modern_visual_place_ids = GameSingleton.get_modern_stable_external_ids()
+	if _modern_visual_place_ids.is_empty():
+		push_error("Modern map provider exposes no visual stable IDs.")
+		return false
+
+	for stable_id: String in _modern_visual_place_ids:
+		if not _modern_place_positions.has(stable_id):
+			push_error("Visual modern place missing from presentation index: ", stable_id)
+			return false
+
+	print(
+		"WARGAME_MODERN_MAP_MODE_INDEX ",
+		"visual_places=", _modern_visual_place_ids.size(),
+		" presentation_places=", presentation_ids.size()
+	)
+	return true
+
+
+func _set_modern_colour(
+	colour_data: PackedByteArray,
+	province_number: int,
+	red: int,
+	green: int,
+	blue: int,
+	alpha: int
+) -> void:
+	if province_number <= 0 or province_number > 65535:
+		return
+
+	var low_byte := province_number & 0xff
+	var high_byte := (province_number >> 8) & 0xff
+	var base_x := low_byte * 2
+
+	for stripe_offset in range(2):
+		var byte_offset := ((high_byte * 512) + base_x + stripe_offset) * 4
+		colour_data[byte_offset] = red
+		colour_data[byte_offset + 1] = green
+		colour_data[byte_offset + 2] = blue
+		colour_data[byte_offset + 3] = alpha
+
+
+func _refresh_modern_map_mode(force: bool) -> bool:
+	var revision := WargameBridge.presentation_revision()
+	if not force and revision == _modern_map_mode_revision:
+		return true
+
+	var values: Dictionary = WargameBridge.presented_place_values()
+	if values.is_empty():
+		push_error("Modern map-mode values unavailable: ", WargameBridge.last_error())
+		return false
+
+	var value_revision := int(values.get(&"revision", -1))
+	if value_revision != revision:
+		push_error(
+			"Modern map-mode revision mismatch: bridge=", revision,
+			" values=", value_revision
+		)
+		return false
+
+	var unit_strengths: PackedInt64Array = values.get(&"unit_strengths", PackedInt64Array())
+
+	var colour_data := PackedByteArray()
+	colour_data.resize(512 * 256 * 4)
+	colour_data.fill(0)
+
+	for visual_index in range(_modern_visual_place_ids.size()):
+		var stable_id := _modern_visual_place_ids[visual_index]
+		var position := int(_modern_place_positions[stable_id])
+
+		if position < 0 or position >= unit_strengths.size():
+			push_error("Modern map-mode packed position out of range for ", stable_id)
+			return false
+
+		var strength := maxi(int(unit_strengths[position]), 0)
+		if strength <= 0:
+			continue
+
+		var intensity := mini(255, 72 + int(sqrt(float(strength)) * 12.0))
+		_set_modern_colour(
+			colour_data,
+			visual_index + 1,
+			32,
+			mini(255, 64 + intensity / 3),
+			intensity,
+			220
+		)
+
+	var result := GameSingleton.update_modern_province_colours(colour_data)
+	if result != OK:
+		push_error("GameSingleton.update_modern_province_colours failed: ", result)
+		return false
+
+	_modern_map_mode_revision = revision
+	print(
+		"WARGAME_MODERN_MAP_MODE_REFRESH ",
+		"mode=unit_strength revision=", revision,
+		" visual_places=", _modern_visual_place_ids.size()
+	)
+	return true
 
 
 func _present_modern_province(province_number: int) -> Dictionary:

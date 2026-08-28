@@ -105,6 +105,7 @@ namespace OpenVic {
 
 		int32_t get_province_number_from_uv_coords(godot::Vector2 const& coords) const;
 		godot::String get_stable_external_id_from_province_number(int32_t province_number) const;
+		godot::PackedStringArray get_modern_stable_external_ids() const;
 
 		int32_t get_map_width() const;
 		int32_t get_map_height() const;
@@ -122,6 +123,10 @@ namespace OpenVic {
 		godot::Ref<godot::ImageTexture> get_modern_colormap_land_texture() const;
 		godot::Ref<godot::ImageTexture> get_modern_colormap_water_texture() const;
 		godot::Ref<godot::ImageTexture> get_modern_colormap_overlay_texture() const;
+
+		godot::Error update_modern_province_colours(
+			godot::PackedByteArray const& colour_data
+		);
 
 		godot::Ref<godot::Image> get_flag_sheet_image() const;
 		godot::Ref<godot::ImageTexture> get_flag_sheet_texture() const;

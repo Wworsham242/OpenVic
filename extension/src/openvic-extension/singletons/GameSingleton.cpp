@@ -75,6 +75,7 @@ void GameSingleton::_bind_methods() {
 
 	OV_BIND_METHOD(GameSingleton::get_province_number_from_uv_coords, { "coords" });
 	OV_BIND_METHOD(GameSingleton::get_stable_external_id_from_province_number, { "province_number" });
+	OV_BIND_METHOD(GameSingleton::get_modern_stable_external_ids);
 
 	OV_BIND_METHOD(GameSingleton::get_map_width);
 	OV_BIND_METHOD(GameSingleton::get_map_height);
@@ -87,6 +88,7 @@ void GameSingleton::_bind_methods() {
 	OV_BIND_METHOD(GameSingleton::get_modern_colormap_land_texture);
 	OV_BIND_METHOD(GameSingleton::get_modern_colormap_water_texture);
 	OV_BIND_METHOD(GameSingleton::get_modern_colormap_overlay_texture);
+	OV_BIND_METHOD(GameSingleton::update_modern_province_colours, { "colour_data" });
 	OV_BIND_METHOD(GameSingleton::get_flag_dims);
 	OV_BIND_METHOD(GameSingleton::get_flag_sheet_texture);
 	OV_BIND_METHOD(GameSingleton::get_province_shape_image_subdivisions);
@@ -294,6 +296,16 @@ Error GameSingleton::load_modern_map_render_data(
 	return modern_map_provider.load_render_data(terrain_raster);
 }
 
+Error GameSingleton::update_modern_province_colours(
+	PackedByteArray const& colour_data
+) {
+	if (!modern_map_provider.is_active()) {
+		return ERR_UNCONFIGURED;
+	}
+
+	return modern_map_provider.update_province_colours(colour_data);
+}
+
 bool GameSingleton::is_modern_map_active() const {
 	return modern_map_provider.is_active();
 }
@@ -313,6 +325,10 @@ String GameSingleton::get_stable_external_id_from_province_number(int32_t const 
   }
 
   return modern_map_provider.get_stable_external_id_from_province_number(province_number);
+}
+
+PackedStringArray GameSingleton::get_modern_stable_external_ids() const {
+  return modern_map_provider.get_stable_external_ids();
 }
 
 int32_t GameSingleton::get_map_width() const {

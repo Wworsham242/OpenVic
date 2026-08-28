@@ -47,6 +47,10 @@ godot::Error load_render_data(
 godot::PackedByteArray const& terrain_raster
 );
 
+godot::Error update_province_colours(
+godot::PackedByteArray const& colour_data
+);
+
 bool is_active() const;
 
 int32_t get_width() const;
@@ -55,6 +59,7 @@ godot::Vector2i get_dims() const;
 
 int32_t get_province_number_from_uv_coords(godot::Vector2 const& coords) const;
 godot::String get_stable_external_id_from_province_number(int32_t province_number) const;
+godot::PackedStringArray get_stable_external_ids() const;
 godot::TypedArray<godot::Dictionary> get_province_names() const;
 
 godot::Vector2i get_province_shape_image_subdivisions() const;

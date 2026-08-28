@@ -378,6 +378,39 @@ colormap_overlay_texture = new_colormap_overlay_texture;
 return OK;
 }
 
+Error ModernMapProvider::update_province_colours(
+PackedByteArray const& colour_data
+) {
+static constexpr int32_t COLOUR_TEXTURE_WIDTH = 512;
+static constexpr int32_t COLOUR_TEXTURE_HEIGHT = 256;
+static constexpr int64_t COLOUR_TEXTURE_BYTES =
+static_cast<int64_t>(COLOUR_TEXTURE_WIDTH) *
+static_cast<int64_t>(COLOUR_TEXTURE_HEIGHT) * 4;
+
+if (
+!active ||
+province_colour_texture.is_null() ||
+colour_data.size() != COLOUR_TEXTURE_BYTES
+) {
+return ERR_INVALID_PARAMETER;
+}
+
+Ref<Image> const colour_image = Image::create_from_data(
+COLOUR_TEXTURE_WIDTH,
+COLOUR_TEXTURE_HEIGHT,
+false,
+Image::FORMAT_RGBA8,
+colour_data
+);
+
+if (colour_image.is_null()) {
+return FAILED;
+}
+
+province_colour_texture->update(colour_image);
+return OK;
+}
+
 bool ModernMapProvider::is_active() const {
 return active;
 }
@@ -441,6 +474,24 @@ String ModernMapProvider::get_stable_external_id_from_province_number(
     }
 
     return stable_external_ids[index];
+}
+
+PackedStringArray ModernMapProvider::get_stable_external_ids() const {
+    PackedStringArray result;
+
+    if (!active) {
+        return result;
+    }
+
+    if (result.resize(static_cast<int64_t>(stable_external_ids.size())) != OK) {
+        return {};
+    }
+
+    for (size_t index = 0; index < stable_external_ids.size(); ++index) {
+        result[static_cast<int64_t>(index)] = stable_external_ids[index];
+    }
+
+    return result;
 }
 
 TypedArray<Dictionary> ModernMapProvider::get_province_names() const {
