@@ -1,5 +1,6 @@
 #include "ModernMapProvider.hpp"
 
+#include <cmath>
 #include <limits>
 #include <utility>
 
@@ -110,10 +111,146 @@ return ERR_INVALID_PARAMETER;
 validated_raster.push_back(province_number);
 }
 
+/* Derive one deterministic presentation position per visual province.
+ *
+ * Y uses the arithmetic mean of raster-pixel centres.
+ * X uses a circular mean because the modern map wraps horizontally.
+ */
+size_t const province_count = validated_ids.size();
+
+std::vector<double> sum_sin_x(province_count, 0.0);
+std::vector<double> sum_cos_x(province_count, 0.0);
+std::vector<double> sum_y(province_count, 0.0);
+std::vector<uint64_t> pixel_counts(province_count, 0);
+
+constexpr double tau = 6.283185307179586476925286766559;
+
+for (int32_t y = 0; y < new_dims.y; ++y) {
+    for (int32_t x = 0; x < new_dims.x; ++x) {
+        size_t const raster_index =
+            static_cast<size_t>(x) +
+            static_cast<size_t>(y) * static_cast<size_t>(new_dims.x);
+
+        int32_t const province_number = validated_raster[raster_index];
+
+        if (province_number <= 0) {
+            continue;
+        }
+
+        size_t const province_index = static_cast<size_t>(province_number - 1);
+
+        double const u =
+            (static_cast<double>(x) + 0.5) /
+            static_cast<double>(new_dims.x);
+
+        double const v =
+            (static_cast<double>(y) + 0.5) /
+            static_cast<double>(new_dims.y);
+
+        double const angle = u * tau;
+
+        sum_sin_x[province_index] += std::sin(angle);
+        sum_cos_x[province_index] += std::cos(angle);
+        sum_y[province_index] += v;
+        ++pixel_counts[province_index];
+    }
+}
+
+std::vector<Vector2> centroid_positions;
+centroid_positions.reserve(province_count);
+
+for (size_t province_index = 0; province_index < province_count; ++province_index) {
+    uint64_t const count = pixel_counts[province_index];
+
+    if (count == 0) {
+        return ERR_INVALID_DATA;
+    }
+
+    double angle = std::atan2(
+        sum_sin_x[province_index],
+        sum_cos_x[province_index]
+    );
+
+    if (angle < 0.0) {
+        angle += tau;
+    }
+
+    double const u = angle / tau;
+    double const v = sum_y[province_index] / static_cast<double>(count);
+
+    centroid_positions.emplace_back(
+        static_cast<float>(u),
+        static_cast<float>(v)
+    );
+}
+
+/* The geometric centroid can fall outside an irregular province.
+ * Choose the actual raster-pixel centre nearest to that centroid instead.
+ * Horizontal distance is wrapped because the world map wraps at U=0/1.
+ */
+std::vector<Vector2> validated_positions(
+    province_count,
+    Vector2 {}
+);
+
+std::vector<double> best_distance_squared(
+    province_count,
+    std::numeric_limits<double>::infinity()
+);
+
+for (int32_t y = 0; y < new_dims.y; ++y) {
+    for (int32_t x = 0; x < new_dims.x; ++x) {
+        size_t const raster_index =
+            static_cast<size_t>(x) +
+            static_cast<size_t>(y) * static_cast<size_t>(new_dims.x);
+
+        int32_t const province_number = validated_raster[raster_index];
+
+        if (province_number <= 0) {
+            continue;
+        }
+
+        size_t const province_index =
+            static_cast<size_t>(province_number - 1);
+
+        double const u =
+            (static_cast<double>(x) + 0.5) /
+            static_cast<double>(new_dims.x);
+
+        double const v =
+            (static_cast<double>(y) + 0.5) /
+            static_cast<double>(new_dims.y);
+
+        Vector2 const centroid = centroid_positions[province_index];
+
+        double delta_u =
+            std::abs(u - static_cast<double>(centroid.x));
+
+        delta_u = std::min(delta_u, 1.0 - delta_u);
+
+        double const delta_v =
+            v - static_cast<double>(centroid.y);
+
+        double const distance_squared =
+            delta_u * delta_u +
+            delta_v * delta_v;
+
+        if (distance_squared < best_distance_squared[province_index]) {
+            best_distance_squared[province_index] = distance_squared;
+
+            validated_positions[province_index] = Vector2 {
+                static_cast<float>(u),
+                static_cast<float>(v)
+            };
+        }
+    }
+}
+
 // Activate only after all validation and copying have succeeded.
 dims = new_dims;
 province_number_raster = std::move(validated_raster);
 stable_external_ids = std::move(validated_ids);
+province_positions = std::move(validated_positions);
 
 // Render data belongs to the loaded map, so a new identity map invalidates
 // any texture generated for the previous map.
@@ -489,6 +626,25 @@ PackedStringArray ModernMapProvider::get_stable_external_ids() const {
 
     for (size_t index = 0; index < stable_external_ids.size(); ++index) {
         result[static_cast<int64_t>(index)] = stable_external_ids[index];
+    }
+
+    return result;
+}
+
+
+PackedVector2Array ModernMapProvider::get_province_positions() const {
+    PackedVector2Array result;
+
+    if (!active) {
+        return result;
+    }
+
+    if (result.resize(static_cast<int64_t>(province_positions.size())) != OK) {
+        return {};
+    }
+
+    for (size_t index = 0; index < province_positions.size(); ++index) {
+        result[static_cast<int64_t>(index)] = province_positions[index];
     }
 
     return result;

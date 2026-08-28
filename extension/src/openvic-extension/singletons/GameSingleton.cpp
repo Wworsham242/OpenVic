@@ -76,6 +76,7 @@ void GameSingleton::_bind_methods() {
 	OV_BIND_METHOD(GameSingleton::get_province_number_from_uv_coords, { "coords" });
 	OV_BIND_METHOD(GameSingleton::get_stable_external_id_from_province_number, { "province_number" });
 	OV_BIND_METHOD(GameSingleton::get_modern_stable_external_ids);
+ OV_BIND_METHOD(GameSingleton::get_modern_province_positions);
 
 	OV_BIND_METHOD(GameSingleton::get_map_width);
 	OV_BIND_METHOD(GameSingleton::get_map_height);
@@ -329,6 +330,11 @@ String GameSingleton::get_stable_external_id_from_province_number(int32_t const 
 
 PackedStringArray GameSingleton::get_modern_stable_external_ids() const {
   return modern_map_provider.get_stable_external_ids();
+}
+
+
+PackedVector2Array GameSingleton::get_modern_province_positions() const {
+  return modern_map_provider.get_province_positions();
 }
 
 int32_t GameSingleton::get_map_width() const {

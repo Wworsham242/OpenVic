@@ -106,6 +106,7 @@ namespace OpenVic {
 		int32_t get_province_number_from_uv_coords(godot::Vector2 const& coords) const;
 		godot::String get_stable_external_id_from_province_number(int32_t province_number) const;
 		godot::PackedStringArray get_modern_stable_external_ids() const;
+         godot::PackedVector2Array get_modern_province_positions() const;
 
 		int32_t get_map_width() const;
 		int32_t get_map_height() const;

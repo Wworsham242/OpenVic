@@ -10,6 +10,7 @@
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
 #include <godot_cpp/variant/packed_string_array.hpp>
+#include <godot_cpp/variant/packed_vector2_array.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/typed_array.hpp>
 #include <godot_cpp/variant/vector2.hpp>
@@ -22,6 +23,11 @@ private:
 godot::Vector2i dims;
 std::vector<int32_t> province_number_raster;
 std::vector<godot::String> stable_external_ids;
+
+/* Presentation-only UV positions derived from the modern visual raster.
+ * They are aligned with stable_external_ids and carry no simulation authority.
+ */
+std::vector<godot::Vector2> province_positions;
 
 godot::Vector2i image_subdivisions;
 godot::Ref<godot::Texture2DArray> province_shape_texture;
@@ -60,6 +66,7 @@ godot::Vector2i get_dims() const;
 int32_t get_province_number_from_uv_coords(godot::Vector2 const& coords) const;
 godot::String get_stable_external_id_from_province_number(int32_t province_number) const;
 godot::PackedStringArray get_stable_external_ids() const;
+godot::PackedVector2Array get_province_positions() const;
 godot::TypedArray<godot::Dictionary> get_province_names() const;
 
 godot::Vector2i get_province_shape_image_subdivisions() const;
