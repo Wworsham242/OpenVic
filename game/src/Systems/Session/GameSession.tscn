@@ -197,6 +197,7 @@ script = ExtResource("20_3306e")
 [connection signal="zoom_in_button_pressed" from="UICanvasLayer/UI/Menubar" to="MapView" method="zoom_in"]
 [connection signal="zoom_out_button_pressed" from="UICanvasLayer/UI/Menubar" to="MapView" method="zoom_out"]
 [connection signal="load_button_pressed" from="UICanvasLayer/UI/GameSessionMenu" to="UICanvasLayer/UI/SaveLoadMenu" method="show_for_load"]
+[connection signal="modern_world_loaded" from="UICanvasLayer/UI/SaveLoadMenu" to="." method="_on_modern_world_loaded"]
 [connection signal="options_button_pressed" from="UICanvasLayer/UI/GameSessionMenu" to="UICanvasLayer/UI/OptionsMenu" method="show"]
 [connection signal="save_button_pressed" from="UICanvasLayer/UI/GameSessionMenu" to="UICanvasLayer/UI/SaveLoadMenu" method="show_for_save"]
 [connection signal="back_button_pressed" from="UICanvasLayer/UI/OptionsMenu" to="MapView" method="enable_processing"]

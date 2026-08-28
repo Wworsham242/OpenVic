@@ -62,6 +62,118 @@ func delete_save(save: SaveResource) -> void:
 	save.delete()
 
 
+func save_modern_world(save_name: String) -> Error:
+	if not WargameBridge.is_loaded():
+		push_error("Cannot save modern world: WargameBridge is not initialized.")
+		return ERR_UNCONFIGURED
+
+	var snapshot: PackedByteArray = WargameBridge.save_bytes()
+	if snapshot.is_empty():
+		push_error("Cannot save modern world: ", WargameBridge.last_error())
+		return FAILED
+
+	var saved_hour := WargameBridge.hour()
+	var saved_checksum := WargameBridge.checksum()
+	var saved_observer := WargameBridge.observer()
+
+	var save := make_new_save(save_name)
+	save.set_wargame_snapshot(
+		snapshot,
+		saved_hour,
+		saved_checksum,
+		saved_observer,
+	)
+
+	add_or_replace_save(save)
+
+	var result := save.flush_save()
+	if result != OK:
+		push_error("Failed to write modern save: ", result)
+		return result
+
+	_dirty_save = null
+	current_save = save
+
+	print(
+		"WARGAME_MODERN_SAVE_WRITTEN ",
+		"name=", save.save_name,
+		" hour=", saved_hour,
+		" bytes=", snapshot.size(),
+		" checksum=", saved_checksum,
+	)
+
+	return OK
+
+
+func load_modern_world(save: SaveResource) -> Error:
+	if save == null:
+		push_error("Cannot load modern world: save is null.")
+		return ERR_INVALID_PARAMETER
+
+	var result := save.load_save()
+	if result != OK:
+		push_error("Failed to read modern save: ", result)
+		return result
+
+	if not save.has_wargame_snapshot():
+		push_error("Selected save contains no WargameEngine snapshot.")
+		return ERR_FILE_UNRECOGNIZED
+
+	var repository_root := OS.get_environment("WARGAME_ENGINE_ROOT")
+	if repository_root.is_empty():
+		push_error("WARGAME_ENGINE_ROOT is not configured.")
+		return ERR_UNCONFIGURED
+
+	var snapshot := save.get_wargame_snapshot()
+	var observer := save.get_wargame_observer()
+
+	if snapshot.is_empty():
+		push_error("Selected modern save contains an empty snapshot.")
+		return ERR_FILE_CORRUPT
+
+	if observer.is_empty():
+		push_error("Selected modern save contains no observer.")
+		return ERR_FILE_CORRUPT
+
+	if not WargameBridge.restore_bytes(
+		repository_root,
+		observer,
+		snapshot,
+	):
+		push_error("Cannot restore modern world: ", WargameBridge.last_error())
+		return FAILED
+
+	if WargameBridge.hour() != save.get_wargame_hour():
+		push_error(
+			"Restored modern save hour mismatch: expected ",
+			save.get_wargame_hour(),
+			", got ",
+			WargameBridge.hour(),
+		)
+		return FAILED
+
+	if WargameBridge.checksum() != save.get_wargame_checksum():
+		push_error(
+			"Restored modern save checksum mismatch: expected ",
+			save.get_wargame_checksum(),
+			", got ",
+			WargameBridge.checksum(),
+		)
+		return FAILED
+
+	current_save = save
+	current_session_tag = save.session_tag
+
+	print(
+		"WARGAME_MODERN_SAVE_LOADED ",
+		"name=", save.save_name,
+		" hour=", WargameBridge.hour(),
+		" checksum=", WargameBridge.checksum(),
+	)
+
+	return OK
+
+
 func flush_save() -> void:
 	if _dirty_save == null: return
 	_dirty_save.flush_save()

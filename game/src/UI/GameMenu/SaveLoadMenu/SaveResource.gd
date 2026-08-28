@@ -28,6 +28,44 @@ var file_path: String:
 var file: ConfigFile = ConfigFile.new()
 
 
+func set_wargame_snapshot(
+	snapshot: PackedByteArray,
+	hour: int,
+	checksum: String,
+	observer: StringName,
+) -> void:
+	file.set_value("WargameEngine", "snapshot", snapshot)
+	file.set_value("WargameEngine", "hour", hour)
+	file.set_value("WargameEngine", "checksum", checksum)
+	file.set_value("WargameEngine", "observer", observer)
+	file.set_value("WargameEngine", "format", 1)
+	emit_changed()
+
+
+func has_wargame_snapshot() -> bool:
+	return file.has_section_key("WargameEngine", "snapshot")
+
+
+func get_wargame_snapshot() -> PackedByteArray:
+	return file.get_value(
+		"WargameEngine",
+		"snapshot",
+		PackedByteArray(),
+	)
+
+
+func get_wargame_hour() -> int:
+	return int(file.get_value("WargameEngine", "hour", -1))
+
+
+func get_wargame_checksum() -> String:
+	return str(file.get_value("WargameEngine", "checksum", ""))
+
+
+func get_wargame_observer() -> StringName:
+	return StringName(file.get_value("WargameEngine", "observer", ""))
+
+
 func set_file_path(name: StringName, path: String) -> void:
 	file_path = path
 	save_name = name

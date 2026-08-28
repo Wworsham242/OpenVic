@@ -24,13 +24,23 @@ func _enter_tree() -> void:
 	if not GameLoader.modern_mode:
 		return
 
-	for child_name: StringName in [&"ModelManager", &"BillboardManager", &"UICanvasLayer"]:
+	for child_name: StringName in [&"ModelManager", &"BillboardManager"]:
 		var child := get_node_or_null(String(child_name))
 		if child != null:
 			remove_child(child)
 			child.queue_free()
 
-	print("WARGAME_MODERN_SESSION_PRUNED victoria_children=true")
+	var modern_ui := get_node_or_null("UICanvasLayer/UI")
+	if modern_ui == null:
+		push_error("Modern UI shell is unavailable.")
+		return
+
+	for ui_child: Node in modern_ui.get_children():
+		if ui_child.name in [&"GameSessionMenu", &"SaveLoadMenu"]:
+			continue
+		modern_ui.remove_child(ui_child)
+		ui_child.queue_free()
+	print("WARGAME_MODERN_SESSION_PRUNED victoria_children=true modern_ui_shell=true")
 
 
 func _ready() -> void:
@@ -76,6 +86,11 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not GameLoader.modern_mode:
+		return
+
+	if event.is_action_pressed(&"ui_cancel"):
+		_on_game_session_menu_button_pressed()
+		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed(&"time_pause"):
@@ -258,6 +273,26 @@ func _set_modern_colour(
 		colour_data[byte_offset + 1] = green
 		colour_data[byte_offset + 2] = blue
 		colour_data[byte_offset + 3] = alpha
+
+
+func _on_modern_world_loaded() -> void:
+	if not GameLoader.modern_mode:
+		return
+
+	_modern_paused = true
+	_modern_time_accumulator = 0.0
+	_modern_map_mode_revision = -1
+
+	if not _refresh_modern_map_mode(true):
+		push_error("Modern map refresh failed after save restore.")
+		return
+
+	print(
+		"WARGAME_MODERN_SAVE_RESYNC ",
+		"hour=", WargameBridge.hour(),
+		" revision=", WargameBridge.presentation_revision(),
+		" paused=", _modern_paused
+	)
 
 
 func _refresh_modern_map_mode(force: bool) -> bool:

@@ -1,5 +1,7 @@
 extends Control
 
+signal modern_world_loaded
+
 @export var _save_scene: PackedScene
 @export_group("Nodes")
 @export var _label: Label
@@ -14,6 +16,7 @@ var is_save_menu: bool = true
 var _id_to_tag: Array[StringName] = []
 var _submitted_text: String = ""
 var _requested_node_to_delete: Control
+var _selected_save: SaveResource
 
 
 func filter_for_tag(tag: StringName) -> void:
@@ -32,6 +35,7 @@ func filter_for_tag(tag: StringName) -> void:
 
 
 func show_for_load() -> void:
+	_selected_save = null
 	_label.text = "Load Menu"
 	_save_load_button.text = "Load"
 	_save_line_edit.editable = false
@@ -44,6 +48,7 @@ func show_for_load() -> void:
 
 
 func show_for_save() -> void:
+	_selected_save = null
 	_label.text = "Save Menu"
 	_save_load_button.text = "Save"
 	_save_line_edit.editable = true
@@ -96,7 +101,14 @@ func _on_delete_dialog_confirmed() -> void:
 
 
 func _on_overwrite_dialog_confirmed() -> void:
-	SaveManager.add_or_replace_save(SaveManager.make_new_save(_submitted_text))
+	if GameLoader.modern_mode:
+		var result := SaveManager.save_modern_world(_submitted_text)
+		if result != OK:
+			push_error("Modern save failed: ", result)
+			return
+	else:
+		SaveManager.add_or_replace_save(SaveManager.make_new_save(_submitted_text))
+
 	_on_close_button_pressed()
 
 
@@ -113,6 +125,22 @@ func _on_save_line_edit_text_submitted(new_text) -> void:
 func _on_save_load_button_pressed() -> void:
 	if is_save_menu:
 		_save_line_edit.text_submitted.emit(_save_line_edit.text)
+		return
+
+	if not GameLoader.modern_mode:
+		return
+
+	if _selected_save == null:
+		push_error("Select a save before loading.")
+		return
+
+	var result := SaveManager.load_modern_world(_selected_save)
+	if result != OK:
+		push_error("Modern load failed: ", result)
+		return
+
+	modern_world_loaded.emit()
+	_on_close_button_pressed()
 
 
 func _on_save_node_delete_requested(node: Control) -> void:
@@ -128,8 +156,8 @@ func _on_save_node_delete_requested(node: Control) -> void:
 
 
 func _on_save_node_pressed(node: Control) -> void:
-	if is_save_menu:
-		_save_line_edit.text = node.resource.save_name
+	_selected_save = node.resource
+	_save_line_edit.text = node.resource.save_name
 
 
 func _on_tag_selection_tab_bar_tab_changed(tab) -> void:
