@@ -75,6 +75,7 @@ var _viewport_dims: Vector2 = Vector2(1, 1)
 @export var _map_text: MapText
 @export var validMoveMarkers: ValidMoveMarkers
 @export var selectionMarkers: SelectionMarkers
+@export var modern_unit_counters: MultiMeshInstance3D
 
 func _enter_tree() -> void:
 	if not GameLoader.modern_mode:
@@ -162,6 +163,18 @@ func _ready() -> void:
 
 	if not GameLoader.modern_mode:
 		_map_text.generate_map_names()
+	else:
+		if modern_unit_counters == null:
+			push_error("Modern unit counter renderer is unavailable.")
+			return
+		modern_unit_counters.configure(self)
+		modern_unit_counters.set_strategic_mode(not _is_detailed_view)
+		detailed_view_changed.connect(_on_modern_counter_detail_changed)
+
+
+func _on_modern_counter_detail_changed(is_detailed: bool) -> void:
+	if modern_unit_counters != null:
+		modern_unit_counters.set_strategic_mode(not is_detailed)
 
 
 func _notification(what: int) -> void:

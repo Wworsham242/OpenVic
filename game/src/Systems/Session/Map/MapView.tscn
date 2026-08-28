@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://r5s47317udos" path="res://src/Systems/Session/Map/SelectionMarkers.gd" id="3_fi78k"]
 [ext_resource type="Shader" uid="uid://bmf40fxtgo3kh" path="res://src/Systems/Session/Map/Projection.gdshader" id="4_2f4io"]
 [ext_resource type="Script" uid="uid://cfpw51y2ga1nl" path="res://src/Systems/Session/Map/ValidMoveMarkers.gd" id="5_h3t3v"]
+[ext_resource type="Script" path="res://src/Systems/Session/Map/ModernUnitCounters.gd" id="6_modern_counters"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_blhuf"]
 render_priority = 0
@@ -53,7 +54,7 @@ albedo_color = Color(0, 0, 0, 1)
 material = SubResource("StandardMaterial3D_irk50")
 size = Vector2(6, 2)
 
-[node name="MapView" type="Node3D" unique_id=661427404 node_paths=PackedStringArray("_camera", "_map_mesh_instance", "_map_background_instance", "_map_text", "validMoveMarkers", "selectionMarkers")]
+[node name="MapView" type="Node3D" unique_id=661427404 node_paths=PackedStringArray("_camera", "_map_mesh_instance", "_map_background_instance", "_map_text", "validMoveMarkers", "selectionMarkers", "modern_unit_counters")]
 editor_description = "SS-73"
 script = ExtResource("1_exccw")
 _camera = NodePath("MapCamera")
@@ -62,6 +63,13 @@ _map_background_instance = NodePath("MapBackgroundInstance")
 _map_text = NodePath("MapText")
 validMoveMarkers = NodePath("ProjectionManager/ValidMoveMarkers")
 selectionMarkers = NodePath("ProjectionManager/SelectionMarkers")
+modern_unit_counters = NodePath("ModernUnitCounters")
+
+[node name="ModernUnitCounters" type="MultiMeshInstance3D" parent="."]
+visible = false
+cast_shadow = 0
+gi_mode = 0
+script = ExtResource("6_modern_counters")
 
 [node name="MapCamera" type="Camera3D" parent="." unique_id=2016531432]
 transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0.25, 1.5, -2.75)

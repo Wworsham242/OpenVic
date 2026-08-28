@@ -18,6 +18,7 @@ var _modern_time_accumulator := 0.0
 var _modern_place_positions: Dictionary = {}
 var _modern_visual_place_ids := PackedStringArray()
 var _modern_map_mode_revision := -1
+var _modern_unit_counter_revision := -1
 
 
 func _enter_tree() -> void:
@@ -70,6 +71,10 @@ func _ready() -> void:
 
 		if not _refresh_modern_map_mode(true):
 			push_error("Modern map-mode initial refresh failed.")
+			return
+
+		if not _refresh_modern_unit_counters(true):
+			push_error("Modern unit-counter initial refresh failed.")
 			return
 
 		return
@@ -185,6 +190,11 @@ func _process(delta: float) -> void:
 				_modern_paused = true
 				return
 
+			if not _refresh_modern_unit_counters(false):
+				push_error("Modern unit-counter refresh failed after authoritative advance.")
+				_modern_paused = true
+				return
+
 		return
 
 	GameSingleton.update_clock()
@@ -282,9 +292,14 @@ func _on_modern_world_loaded() -> void:
 	_modern_paused = true
 	_modern_time_accumulator = 0.0
 	_modern_map_mode_revision = -1
+	_modern_unit_counter_revision = -1
 
 	if not _refresh_modern_map_mode(true):
 		push_error("Modern map refresh failed after save restore.")
+		return
+
+	if not _refresh_modern_unit_counters(true):
+		push_error("Modern unit-counter refresh failed after save restore.")
 		return
 
 	print(
@@ -352,6 +367,92 @@ func _refresh_modern_map_mode(force: bool) -> bool:
 		"mode=unit_strength revision=", revision,
 		" visual_places=", _modern_visual_place_ids.size()
 	)
+	return true
+
+
+func _refresh_modern_unit_counters(force: bool) -> bool:
+	var revision := WargameBridge.presentation_revision()
+
+	if not force and revision == _modern_unit_counter_revision:
+		return true
+
+	var values: Dictionary = WargameBridge.presented_unit_values()
+	if values.is_empty():
+		push_error("Modern unit presentation unavailable: ", WargameBridge.last_error())
+		return false
+
+	var value_revision := int(values.get(&"revision", -1))
+	if value_revision != revision:
+		push_error(
+			"Modern unit presentation revision mismatch: bridge=", revision,
+			" values=", value_revision
+		)
+		return false
+
+	var ids: PackedStringArray = values.get(&"ids", PackedStringArray())
+	var place_positions: PackedInt64Array = values.get(&"place_positions", PackedInt64Array())
+
+	if ids.size() != place_positions.size():
+		push_error("Modern unit presentation packed columns have mismatched lengths.")
+		return false
+
+	var province_positions: PackedVector2Array = GameSingleton.get_modern_province_positions()
+
+	if province_positions.size() != _modern_visual_place_ids.size():
+		push_error("Modern visual place positions do not match visual place IDs.")
+		return false
+
+	var stacks_by_place: Dictionary = {}
+
+	for unit_index in range(ids.size()):
+		var place_position := int(place_positions[unit_index])
+
+		if place_position < 0:
+			continue
+
+		if not stacks_by_place.has(place_position):
+			stacks_by_place[place_position] = PackedStringArray()
+
+		var stack_ids: PackedStringArray = stacks_by_place[place_position]
+		stack_ids.push_back(ids[unit_index])
+		stacks_by_place[place_position] = stack_ids
+
+	var counter_place_ids := PackedStringArray()
+	var counter_positions := PackedVector2Array()
+	var counter_stack_ids: Array[PackedStringArray] = []
+
+	for visual_index in range(_modern_visual_place_ids.size()):
+		var stable_id := _modern_visual_place_ids[visual_index]
+		var presentation_position := int(_modern_place_positions[stable_id])
+
+		if not stacks_by_place.has(presentation_position):
+			continue
+
+		counter_place_ids.push_back(stable_id)
+		counter_positions.push_back(province_positions[visual_index])
+		counter_stack_ids.push_back(stacks_by_place[presentation_position])
+
+	if _map_view.modern_unit_counters == null:
+		push_error("Modern unit counter renderer missing from MapView.")
+		return false
+
+	if not _map_view.modern_unit_counters.set_counters(
+		counter_place_ids,
+		counter_positions,
+		counter_stack_ids
+	):
+		return false
+
+	_map_view.modern_unit_counters.visible = counter_place_ids.size() > 0
+	_modern_unit_counter_revision = revision
+
+	print(
+		"WARGAME_MODERN_UNIT_COUNTER_REFRESH ",
+		"revision=", revision,
+		" formations=", ids.size(),
+		" stacks=", counter_place_ids.size()
+	)
+
 	return true
 
 
