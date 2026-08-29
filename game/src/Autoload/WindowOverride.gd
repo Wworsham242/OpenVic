@@ -2,8 +2,9 @@ extends Node
 
 
 func _init() -> void:
-	var window_id := DisplayServer.get_window_list()[0]
-	DisplayServer.window_set_size(Vector2(1280.0, 720.0), window_id)
+	var window_id := DisplayServer.get_window_list()
+	if window_id.size() > 0:
+		DisplayServer.window_set_size(Vector2(1280.0, 720.0), window_id[0])
 
 
 func _ready() -> void:
