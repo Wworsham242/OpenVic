@@ -44,6 +44,14 @@ func remove_setting(key: StringName) -> void:
 	var setting: Setting = self.get_setting(key)
 	if setting != null:
 		self._settings.erase(key)
+		setting._registry = null
+
+## Remove every setting and release each setting's back-reference to this registry.
+## This is also required during shutdown because Registry and Setting are RefCounted.
+func clear() -> void:
+	for setting: Setting in self._settings.values():
+		setting._registry = null
+	self._settings.clear()
 
 ## Return all `Setting` objects whose keys begin with `section`.
 ##

@@ -32,6 +32,15 @@ func _ready() -> void:
 	self._registry.changed.connect(self._on_changed)
 	self._registry.staged_changed.connect(self._on_staged_changed)
 
+func _exit_tree() -> void:
+	if self._registry.applied.is_connected(self._on_applied):
+		self._registry.applied.disconnect(self._on_applied)
+	if self._registry.changed.is_connected(self._on_changed):
+		self._registry.changed.disconnect(self._on_changed)
+	if self._registry.staged_changed.is_connected(self._on_staged_changed):
+		self._registry.staged_changed.disconnect(self._on_staged_changed)
+	self._registry.clear()
+
 func _process(_delta: float) -> void:
 	if !self._settings_staged_changed.is_empty():
 		self.settings_staged_changed.emit()
