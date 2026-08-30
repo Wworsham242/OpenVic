@@ -22,6 +22,10 @@ var _modern_unit_counter_revision := -1
 var _modern_selected_place_id := ""
 var _modern_selected_unit_ids := PackedStringArray()
 
+# Presentation-only cache. It contains observer-filtered values for one bridge
+# revision and is never an authoritative simulation owner.
+var _modern_unit_details_by_id: Dictionary = {}
+
 
 func _enter_tree() -> void:
 	if not GameLoader.modern_mode:
@@ -39,7 +43,7 @@ func _enter_tree() -> void:
 		return
 
 	for ui_child: Node in modern_ui.get_children():
-		if ui_child.name in [&"GameSessionMenu", &"SaveLoadMenu"]:
+		if ui_child.name in [&"GameSessionMenu", &"SaveLoadMenu", &"ModernSelectionPanel"]:
 			continue
 		modern_ui.remove_child(ui_child)
 		ui_child.queue_free()
@@ -392,11 +396,31 @@ func _refresh_modern_unit_counters(force: bool) -> bool:
 		return false
 
 	var ids: PackedStringArray = values.get(&"ids", PackedStringArray())
+	var actors: PackedStringArray = values.get(&"actors", PackedStringArray())
 	var place_positions: PackedInt64Array = values.get(&"place_positions", PackedInt64Array())
+	var estimated_strengths: PackedInt64Array = values.get(&"estimated_strengths", PackedInt64Array())
+	var confidences: PackedInt64Array = values.get(&"confidences", PackedInt64Array())
+	var movement_states: PackedInt64Array = values.get(&"movement_states", PackedInt64Array())
 
-	if ids.size() != place_positions.size():
+	var formation_count := ids.size()
+	if (
+		actors.size() != formation_count
+		or place_positions.size() != formation_count
+		or estimated_strengths.size() != formation_count
+		or confidences.size() != formation_count
+		or movement_states.size() != formation_count
+	):
 		push_error("Modern unit presentation packed columns have mismatched lengths.")
 		return false
+
+	_modern_unit_details_by_id.clear()
+	for unit_index in range(formation_count):
+		_modern_unit_details_by_id[ids[unit_index]] = {
+			&"actor": actors[unit_index],
+			&"estimated_strength": int(estimated_strengths[unit_index]),
+			&"confidence": int(confidences[unit_index]),
+			&"movement_state": int(movement_states[unit_index]),
+		}
 
 	var province_positions: PackedVector2Array = GameSingleton.get_modern_province_positions()
 
@@ -448,6 +472,7 @@ func _refresh_modern_unit_counters(force: bool) -> bool:
 	_map_view.modern_unit_counters.visible = counter_place_ids.size() > 0
 	_modern_unit_counter_revision = revision
 	_reconcile_modern_unit_selection()
+	_refresh_modern_selection_panel()
 
 	print(
 		"WARGAME_MODERN_UNIT_COUNTER_REFRESH ",
@@ -493,6 +518,7 @@ func _present_modern_province(province_number: int) -> Dictionary:
 func _clear_modern_unit_selection() -> void:
 	_modern_selected_place_id = ""
 	_modern_selected_unit_ids = PackedStringArray()
+	_refresh_modern_selection_panel()
 
 
 func _reconcile_modern_unit_selection() -> void:
@@ -517,6 +543,37 @@ func _reconcile_modern_unit_selection() -> void:
 
 	_modern_selected_unit_ids = current_ids
 
+
+func _refresh_modern_selection_panel(summary: Dictionary = {}) -> void:
+	var panel := get_node_or_null("UICanvasLayer/UI/ModernSelectionPanel")
+	if panel == null:
+		return
+
+	if _modern_selected_place_id.is_empty():
+		panel.call("clear_selection")
+		return
+
+	var current_summary := summary
+	if current_summary.is_empty():
+		current_summary = WargameBridge.presented_place_summary(_modern_selected_place_id)
+		if current_summary.is_empty():
+			push_error(
+				"Modern selection panel could not refresh ",
+				_modern_selected_place_id,
+				": ",
+				WargameBridge.last_error()
+			)
+			panel.call("clear_selection")
+			return
+
+	panel.call(
+		"show_selection",
+		current_summary,
+		_modern_selected_unit_ids,
+		_modern_unit_details_by_id,
+		WargameBridge.hour(),
+		WargameBridge.presentation_revision()
+	)
 
 func _select_modern_units_at_place(place_id: String) -> void:
 	if _map_view.modern_unit_counters == null:
@@ -548,6 +605,7 @@ func _on_map_view_province_clicked(province_number: int) -> void:
 
 		var stable_id := String(summary[&"id"])
 		_select_modern_units_at_place(stable_id)
+		_refresh_modern_selection_panel(summary)
 
 		print(
 			"WARGAME_MODERN_PROVINCE_CLICK number=", province_number,

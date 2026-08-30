@@ -23,6 +23,7 @@
 [ext_resource type="Script" uid="uid://c13log8xxe0ka" path="res://src/UI/Session/Ledger.gd" id="15_vhb1p"]
 [ext_resource type="Script" uid="uid://dwl7hkcjjjv0y" path="res://src/UI/Shared/Tooltip.gd" id="20_3306e"]
 [ext_resource type="Script" uid="uid://brj7thir5rehc" path="res://src/UI/Session/Menubar.gd" id="20_s1i71"]
+[ext_resource type="Script" path="res://src/Wargame/ModernSelectionPanel.gd" id="21_modern_selection"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ghmi8"]
 render_priority = 0
@@ -138,6 +139,19 @@ anchors_preset = 15
 script = ExtResource("5_t260f")
 _map_view = NodePath("../../../MapView")
 
+[node name="ModernSelectionPanel" type="PanelContainer" parent="UICanvasLayer/UI"]
+visible = false
+layout_mode = 1
+anchors_preset = 2
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -390.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = 420.0
+grow_horizontal = 0
+mouse_filter = 0
+script = ExtResource("21_modern_selection")
 [node name="GameSessionMenu" parent="UICanvasLayer/UI" unique_id=56265418 instance=ExtResource("3_bvmqh")]
 visible = false
 layout_mode = 1
