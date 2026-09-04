@@ -1,0 +1,14 @@
+modern_industrial = {
+    modern_iron_ore = {
+        color = { 95 82 70 }
+        cost = 1
+    }
+    modern_primary_steel = {
+        color = { 110 125 140 }
+        cost = 2
+    }
+    modern_industrial_machinery = {
+        color = { 145 155 165 }
+        cost = 4
+    }
+}

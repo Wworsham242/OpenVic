@@ -1,20 +1,17 @@
-# LIVE-ECONOMY-004 transitional application smoke configuration.
-# These Victoria identifiers are used only to prove the real application
-# overlay -> loader -> InstanceManager runtime path. They will be replaced by
-# modern ruleset definitions in the catalog migration.
+# First application-owned modern live economy chain.
+# Capacities are bootstrap scenario values, not calibrated world data.
 
-upstream_process = steel_factory
-downstream_process = machine_parts_factory
+upstream_process = modern_primary_steel_process
+downstream_process = modern_industrial_machinery_process
 
 upstream_capacity = 4
 upstream_utilization = 1
 downstream_capacity = 4
 downstream_utilization = 1
 
-source_inflow_good = coal
+source_inflow_good = modern_iron_ore
 source_inflow_per_daily_tick = 4
 
 source_node = 0
 destination_node = 1
-
 corridor_capacities = { 10 6 8 }

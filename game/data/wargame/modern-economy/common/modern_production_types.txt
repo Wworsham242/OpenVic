@@ -1,0 +1,16 @@
+modern_primary_steel_process = {
+    workforce = 1
+    input_goods = {
+        modern_iron_ore = 1
+    }
+    output_good = modern_primary_steel
+    value = 1
+}
+modern_industrial_machinery_process = {
+    workforce = 1
+    input_goods = {
+        modern_primary_steel = 2
+    }
+    output_good = modern_industrial_machinery
+    value = 1
+}
