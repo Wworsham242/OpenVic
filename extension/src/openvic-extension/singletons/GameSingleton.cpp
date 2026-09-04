@@ -70,6 +70,7 @@ void GameSingleton::_bind_methods() {
 	OV_BIND_METHOD(GameSingleton::end_game_session);
 	OV_BIND_METHOD(GameSingleton::is_game_session_active);
 	OV_BIND_METHOD(GameSingleton::is_live_economy_configured);
+	OV_BIND_METHOD(GameSingleton::get_live_economy_status);
 
 	OV_BIND_METHOD(GameSingleton::load_modern_map, { "dims", "province_number_raster", "stable_external_ids" });
 	OV_BIND_METHOD(GameSingleton::load_modern_map_render_data, { "terrain_raster" });
@@ -290,6 +291,57 @@ bool GameSingleton::is_live_economy_configured() const {
 	InstanceManager const* const instance_manager = get_instance_manager();
 	return instance_manager != nullptr &&
 		instance_manager->get_live_economy_status().configured;
+}
+Dictionary GameSingleton::get_live_economy_status() const {
+	static const StringName configured_key = "configured";
+	static const StringName completed_daily_ticks_key = "completed_daily_ticks";
+	static const StringName upstream_output_key = "upstream_output";
+	static const StringName downstream_desired_output_key = "downstream_desired_output";
+	static const StringName downstream_output_key = "downstream_output";
+	static const StringName downstream_input_limited_key = "downstream_input_limited";
+	static const StringName intermediate_upstream_inventory_key = "intermediate_upstream_inventory";
+	static const StringName intermediate_downstream_inventory_key = "intermediate_downstream_inventory";
+	static const StringName final_inventory_key = "final_inventory";
+	static const StringName corridor_capacity_key = "corridor_capacity";
+	static const StringName deliverable_intermediate_key = "deliverable_intermediate";
+	static const StringName intermediate_price_key = "intermediate_price";
+	static const StringName intermediate_supply_yesterday_key = "intermediate_supply_yesterday";
+	static const StringName intermediate_demand_yesterday_key = "intermediate_demand_yesterday";
+	static const StringName intermediate_quantity_traded_yesterday_key =
+		"intermediate_quantity_traded_yesterday";
+
+	Dictionary result;
+	InstanceManager const* const instance_manager = get_instance_manager();
+	if (instance_manager == nullptr) {
+		result[configured_key] = false;
+		return result;
+	}
+
+	LiveEconomyStatus const status = instance_manager->get_live_economy_status();
+
+	result[configured_key] = status.configured;
+	result[completed_daily_ticks_key] = static_cast<int64_t>(status.completed_daily_ticks);
+	result[upstream_output_key] = static_cast<double>(status.upstream_output);
+	result[downstream_desired_output_key] = static_cast<double>(status.downstream_desired_output);
+	result[downstream_output_key] = static_cast<double>(status.downstream_output);
+	result[downstream_input_limited_key] = status.downstream_input_limited;
+	result[intermediate_upstream_inventory_key] =
+		static_cast<double>(status.intermediate_upstream_inventory);
+	result[intermediate_downstream_inventory_key] =
+		static_cast<double>(status.intermediate_downstream_inventory);
+	result[final_inventory_key] = static_cast<double>(status.final_inventory);
+	result[corridor_capacity_key] = static_cast<double>(status.corridor_capacity);
+	result[deliverable_intermediate_key] =
+		static_cast<double>(status.deliverable_intermediate);
+	result[intermediate_price_key] = static_cast<double>(status.intermediate_price);
+	result[intermediate_supply_yesterday_key] =
+		static_cast<double>(status.intermediate_supply_yesterday);
+	result[intermediate_demand_yesterday_key] =
+		static_cast<double>(status.intermediate_demand_yesterday);
+	result[intermediate_quantity_traded_yesterday_key] =
+		static_cast<double>(status.intermediate_quantity_traded_yesterday);
+
+	return result;
 }
 Error GameSingleton::load_modern_map(
 	Vector2i const& dims,

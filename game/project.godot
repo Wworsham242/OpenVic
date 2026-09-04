@@ -41,6 +41,7 @@ SaveManager="*res://src/Autoload/SaveManager.gd"
 CursorManager="*res://src/Autoload/CursorManager.gd"
 Keychain="*uid://dgiia2xg7fsud"
 ControlsGlobal="*uid://u4g1f1gemv7i"
+LiveEconomyPanel="*res://src/Wargame/LiveEconomyPanel.gd"
 
 [display]
 

@@ -99,6 +99,7 @@ namespace OpenVic {
 		godot::Error end_game_session();
 		bool is_game_session_active() const;
 		bool is_live_economy_configured() const;
+		godot::Dictionary get_live_economy_status() const;
 
 		godot::Error load_modern_map(godot::Vector2i const& dims, godot::PackedInt32Array const& province_number_raster, godot::PackedStringArray const& stable_external_ids);
 		godot::Error load_modern_map_render_data(godot::PackedByteArray const& terrain_raster);
