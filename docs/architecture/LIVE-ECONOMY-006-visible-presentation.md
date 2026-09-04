@@ -1,7 +1,9 @@
 # LIVE-ECONOMY-006 â€” Visible economy presentation
 
-This slice makes the already-authoritative modern live economy visible in the
-OpenVic/Godot application.
+This slice makes the OpenVic-Simulation live economy visible in the OpenVic/Godot application. Its
+`InstanceManager` ownership is part of the intended native-engine authority convergence. The
+existing Victoria-backed session used to demonstrate this slice is a compatibility path, not the
+target native bootstrap.
 
 ## Boundary
 
