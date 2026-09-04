@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 
+#include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/variant/packed_string_array.hpp>
@@ -68,6 +69,7 @@ void GameSingleton::_bind_methods() {
 	OV_BIND_METHOD(GameSingleton::start_game_session);
 	OV_BIND_METHOD(GameSingleton::end_game_session);
 	OV_BIND_METHOD(GameSingleton::is_game_session_active);
+	OV_BIND_METHOD(GameSingleton::is_live_economy_configured);
 
 	OV_BIND_METHOD(GameSingleton::load_modern_map, { "dims", "province_number_raster", "stable_external_ids" });
 	OV_BIND_METHOD(GameSingleton::load_modern_map_render_data, { "terrain_raster" });
@@ -284,6 +286,11 @@ bool GameSingleton::is_game_session_active() const {
 	return game_manager.is_game_session_active();
 }
 
+bool GameSingleton::is_live_economy_configured() const {
+	InstanceManager const* const instance_manager = get_instance_manager();
+	return instance_manager != nullptr &&
+		instance_manager->get_live_economy_status().configured;
+}
 Error GameSingleton::load_modern_map(
 	Vector2i const& dims,
 	PackedInt32Array const& province_number_raster,
@@ -865,6 +872,29 @@ Error GameSingleton::load_defines_compatibility_mode(PackedStringArray const& mo
 		std_mods.emplace_back(convert_to<std::string>(mod));
 	}
 
+	// LIVE-ECONOMY-004 application overlay: base data remains first,
+	// application-owned modern ruleset data overrides base, then requested
+	// user mods are appended with the highest precedence.
+	{
+		const String modern_overlay_godot_path =
+			ProjectSettings::get_singleton()->globalize_path(
+				"res://data/wargame/modern-economy"
+			);
+		const CharString modern_overlay_utf8 =
+			modern_overlay_godot_path.utf8();
+		const fs::path modern_overlay_path {
+			modern_overlay_utf8.get_data()
+		};
+
+		if (fs::is_directory(modern_overlay_path)) {
+			if (!game_manager.add_application_data_root(modern_overlay_path)) {
+				UtilityFunctions::push_error(
+					"Failed to register modern application data overlay."
+				);
+				return FAILED;
+			}
+		}
+	}
 	ERR_FAIL_COND_V_MSG(!game_manager.load_mods(std_mods), FAILED, "Loading mods failed.");
 
 	if (!game_manager.load_definitions(add_message)) {
